@@ -3,6 +3,7 @@ import { Send, MessageCircle, Phone, Mail, MapPin, CheckCircle } from 'lucide-re
 import { BUSINESS } from '../../lib/constants';
 import { useRevealOnScroll } from '../../hooks/useUtils';
 import { createMessage } from '../../lib/firestore';
+import { sendContactEmail } from '../../lib/email';
 import './Contact.css';
 
 interface ContactForm {
@@ -38,11 +39,16 @@ export default function Contact() {
 
     setIsSubmitting(true);
     try {
-      await createMessage({
+      const contactPayload = {
         name: form.name,
         email: form.email,
         message: form.message,
-      });
+      };
+
+      await Promise.allSettled([
+        createMessage(contactPayload),
+        sendContactEmail(contactPayload),
+      ]);
       setSubmitted(true);
     } catch (err) {
       console.error('Failed to send message:', err);

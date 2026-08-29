@@ -5,6 +5,7 @@ import { TIME_SLOTS as FALLBACK_TIME_SLOTS } from '../../lib/constants';
 import { useRevealOnScroll } from '../../hooks/useUtils';
 import { createBooking } from '../../lib/firestore';
 import { getScheduleConfig, generateTimeSlots } from '../../lib/firestore';
+import { sendBookingEmail } from '../../lib/email';
 import './Booking.css';
 
 type Step = 1 | 2 | 3 | 4;
@@ -93,7 +94,7 @@ export default function Booking() {
     setIsSubmitting(true);
     try {
       const serviceName = SERVICES.find(s => s.id === form.service)?.name || form.service;
-      await createBooking({
+      const bookingPayload = {
         service: serviceName,
         date: form.date,
         time: form.time,
@@ -102,7 +103,12 @@ export default function Booking() {
         phone: form.phone,
         address: form.address,
         notes: form.notes,
-      });
+      };
+
+      await Promise.allSettled([
+        createBooking(bookingPayload),
+        sendBookingEmail(bookingPayload),
+      ]);
       setSubmitted(true);
     } catch (err) {
       console.error('Failed to submit booking:', err);

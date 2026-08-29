@@ -31,6 +31,9 @@ export default function Footer() {
                 {item.label}
               </button>
             ))}
+            <Link to="/privacy-policy" className="footer__link footer__link--privacy">
+              Privacy Policy
+            </Link>
           </div>
 
           <div className="footer__contact">
@@ -64,9 +67,15 @@ export default function Footer() {
 
         {/* Bottom */}
         <div className="footer__bottom">
-          <p className="footer__copy">
-            © {new Date().getFullYear()} LUXE A&amp;P Cleaning. All rights reserved.
-          </p>
+          <div className="footer__bottom-left">
+            <p className="footer__copy">
+              © {new Date().getFullYear()} LUXE A&amp;P Cleaning. All rights reserved.
+            </p>
+            <span className="footer__dot">•</span>
+            <Link to="/privacy-policy" className="footer__privacy-link">
+              Privacy Policy
+            </Link>
+          </div>
           <div className="footer__bottom-right">
             <p className="footer__sub">
               Designed &amp; Developed by Diego Araújo

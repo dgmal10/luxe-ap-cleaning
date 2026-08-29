@@ -177,6 +177,44 @@
   background: var(--color-gold-muted);
 }
 
+.footer__bottom-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.footer__dot {
+  color: var(--color-gray-600);
+  font-size: var(--text-xs);
+}
+
+.footer__privacy-link {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  text-decoration: none;
+  transition: color var(--duration-fast);
+}
+
+.footer__privacy-link:hover {
+  color: var(--color-gold);
+  text-decoration: underline;
+}
+
+.footer__link--privacy {
+  text-decoration: none;
+  font-size: var(--text-sm);
+  color: var(--color-gray-400);
+  transition: all var(--duration-fast);
+  display: block;
+  text-align: left;
+}
+
+.footer__link--privacy:hover {
+  color: var(--color-gold);
+  padding-left: var(--space-2);
+}
+
 .footer__copy {
   font-size: var(--text-sm);
   color: var(--color-gray-500);

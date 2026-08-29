@@ -19,6 +19,7 @@ const Dashboard = lazy(() => import('./components/admin/Dashboard'));
 const Messages = lazy(() => import('./components/admin/Messages'));
 const Schedule = lazy(() => import('./components/admin/Schedule'));
 const GalleryAdmin = lazy(() => import('./components/admin/GalleryAdmin'));
+const PrivacyPolicy = lazy(() => import('./components/public/PrivacyPolicy'));
 
 function AdminLoadingFallback() {
   return (
@@ -95,6 +96,7 @@ export default function App() {
         <Routes>
           {/* Public site */}
           <Route path="/" element={<LandingPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
           {/* Admin login (no auth required) */}
           <Route path="/admin/login" element={<AdminLogin />} />

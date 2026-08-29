@@ -1,6 +1,20 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Calendar, Clock, User, ArrowRight, ArrowLeft, CheckCircle, MessageCircle } from 'lucide-react';
-import { SERVICES, BUSINESS } from '../../lib/constants';
+import {
+  Clock,
+  User,
+  ArrowRight,
+  ArrowLeft,
+  CheckCircle,
+  MessageCircle,
+  Home,
+  Bath,
+  BedDouble,
+  Plus,
+  Check,
+  DollarSign,
+  Sparkles,
+} from 'lucide-react';
+import { SERVICES, BUSINESS, CLEANING_EXTRAS, calculateEstimatedPrice } from '../../lib/constants';
 import { TIME_SLOTS as FALLBACK_TIME_SLOTS } from '../../lib/constants';
 import { useRevealOnScroll } from '../../hooks/useUtils';
 import { createBooking } from '../../lib/firestore';
@@ -8,10 +22,13 @@ import { getScheduleConfig, generateTimeSlots } from '../../lib/firestore';
 import { sendBookingEmail } from '../../lib/email';
 import './Booking.css';
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3;
 
 interface FormData {
   service: string;
+  bedrooms: number;
+  bathrooms: number;
+  extras: string[];
   date: string;
   time: string;
   name: string;
@@ -22,7 +39,10 @@ interface FormData {
 }
 
 const INITIAL: FormData = {
-  service: '',
+  service: 'deep',
+  bedrooms: 2,
+  bathrooms: 2,
+  extras: [],
   date: '',
   time: '',
   name: '',
@@ -51,10 +71,27 @@ export default function Booking() {
       .catch(() => { /* keep fallback slots */ });
   }, []);
 
-  const set = useCallback((field: keyof FormData, value: string) => {
+  const set = useCallback((field: keyof FormData, value: unknown) => {
     setForm(prev => ({ ...prev, [field]: value }));
     setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
   }, []);
+
+  const toggleExtra = useCallback((extraId: string) => {
+    setForm(prev => {
+      const exists = prev.extras.includes(extraId);
+      const newExtras = exists
+        ? prev.extras.filter(id => id !== extraId)
+        : [...prev.extras, extraId];
+      return { ...prev, extras: newExtras };
+    });
+  }, []);
+
+  const estimatedPrice = calculateEstimatedPrice(
+    form.service,
+    form.bedrooms,
+    form.bathrooms,
+    form.extras
+  );
 
   const validateStep = useCallback((): boolean => {
     const errs: Partial<Record<keyof FormData, string>> = {};
@@ -63,7 +100,6 @@ export default function Booking() {
     if (step === 2) {
       if (!form.date) errs.date = 'Please select a date';
       if (!form.time) errs.time = 'Please select a time';
-      // Check if date is in the future
       if (form.date && new Date(form.date) < new Date(new Date().toDateString())) {
         errs.date = 'Please select a future date';
       }
@@ -82,7 +118,7 @@ export default function Booking() {
   }, [step, form]);
 
   const next = useCallback(() => {
-    if (validateStep()) setStep(s => Math.min(s + 1, 4) as Step);
+    if (validateStep()) setStep(s => Math.min(s + 1, 3) as Step);
   }, [validateStep]);
 
   const prev = useCallback(() => {
@@ -93,9 +129,16 @@ export default function Booking() {
     if (!validateStep()) return;
     setIsSubmitting(true);
     try {
-      const serviceName = SERVICES.find(s => s.id === form.service)?.name || form.service;
+      const serviceObj = SERVICES.find(s => s.id === form.service);
+      const serviceName = serviceObj?.name || form.service;
+      const extraNames = form.extras.map(eId => CLEANING_EXTRAS.find(e => e.id === eId)?.name || eId);
+
       const bookingPayload = {
         service: serviceName,
+        bedrooms: form.bedrooms,
+        bathrooms: form.bathrooms,
+        extras: extraNames,
+        estimatedPrice,
         date: form.date,
         time: form.time,
         name: form.name,
@@ -112,12 +155,11 @@ export default function Booking() {
       setSubmitted(true);
     } catch (err) {
       console.error('Failed to submit booking:', err);
-      // Still show success for UX (WhatsApp fallback)
       setSubmitted(true);
     } finally {
       setIsSubmitting(false);
     }
-  }, [validateStep, form]);
+  }, [validateStep, form, estimatedPrice]);
 
   const selectedService = SERVICES.find(s => s.id === form.service);
 
@@ -136,12 +178,16 @@ export default function Booking() {
             </div>
             <h2 className="booking__success-title">Request Submitted!</h2>
             <p className="booking__success-text">
-              Thank you, {form.name}! We've received your cleaning request for{' '}
+              Thank you, <strong>{form.name}</strong>! We've received your request for{' '}
               <strong>{selectedService?.name}</strong> on <strong>{form.date}</strong> at{' '}
               <strong>{form.time}</strong>.
             </p>
+            <div className="booking__success-quote">
+              <span>Estimated Quote:</span>
+              <strong>${estimatedPrice}</strong>
+            </div>
             <p className="booking__success-sub">
-              We'll confirm your appointment shortly. You can also reach us directly:
+              We'll confirm your final appointment details shortly via SMS or email.
             </p>
             <a
               href={BUSINESS.whatsapp}
@@ -162,20 +208,20 @@ export default function Booking() {
     <section className="booking section section-dark" id="booking">
       <div className="container" ref={ref}>
         <div className="section-header reveal">
-          <span className="section-label">Book Now</span>
+          <span className="section-label">Online Booking</span>
           <h2 className="section-title">Schedule Your Cleaning</h2>
           <hr className="gold-line" />
           <p className="section-subtitle">
-            Fill out the form below and we'll confirm your appointment within 24 hours.
+            Get an instant transparent estimate and book your preferred date in minutes.
           </p>
         </div>
 
         {/* Progress indicator */}
         <div className="booking__progress reveal">
           {[
-            { num: 1, label: 'Service', icon: <Calendar size={16} /> },
-            { num: 2, label: 'Schedule', icon: <Clock size={16} /> },
-            { num: 3, label: 'Details', icon: <User size={16} /> },
+            { num: 1, label: 'Service & Home', icon: <Home size={16} /> },
+            { num: 2, label: 'Date & Time', icon: <Clock size={16} /> },
+            { num: 3, label: 'Your Details', icon: <User size={16} /> },
           ].map(({ num, label, icon }) => (
             <div
               key={num}
@@ -190,35 +236,130 @@ export default function Booking() {
           ))}
         </div>
 
+        {/* Estimate Banner Box */}
+        <div className="booking__estimate-banner reveal">
+          <div className="booking__estimate-left">
+            <Sparkles size={20} className="booking__estimate-sparkle" />
+            <div>
+              <span className="booking__estimate-tag">Instant Estimate</span>
+              <p className="booking__estimate-sub">
+                {form.bedrooms} Bed &bull; {form.bathrooms} Bath
+                {form.extras.length > 0 && ` + ${form.extras.length} Add-on${form.extras.length > 1 ? 's' : ''}`}
+              </p>
+            </div>
+          </div>
+          <div className="booking__estimate-price-wrap">
+            <span className="booking__estimate-currency">$</span>
+            <span className="booking__estimate-val">{estimatedPrice}</span>
+            <span className="booking__estimate-note">estimated</span>
+          </div>
+        </div>
+
         {/* Form card */}
         <div className="booking__card reveal">
-          {/* Step 1: Service */}
+          {/* Step 1: Service + Home Details + Extras */}
           {step === 1 && (
             <div className="booking__step animate-fade-in">
-              <h3 className="booking__step-title">Choose Your Service</h3>
+              <h3 className="booking__step-title">1. Select Cleaning Package</h3>
               <div className="booking__services-grid">
                 {SERVICES.map(service => (
                   <button
                     key={service.id}
+                    type="button"
                     className={`booking__service-option ${form.service === service.id ? 'booking__service-option--selected' : ''}`}
                     onClick={() => set('service', service.id)}
                   >
-                    <strong>{service.name}</strong>
+                    <div className="booking__service-option-top">
+                      <strong>{service.name}</strong>
+                    </div>
                     <span>{service.description}</span>
                   </button>
                 ))}
               </div>
               {errors.service && <p className="form-error">{errors.service}</p>}
+
+              {/* Home Size Selectors */}
+              <div className="booking__home-size">
+                <h4 className="booking__subheading">2. How large is your home?</h4>
+                <div className="booking__counter-grid">
+                  {/* Bedrooms */}
+                  <div className="booking__counter-card">
+                    <div className="booking__counter-label">
+                      <BedDouble size={18} />
+                      <span>Bedrooms</span>
+                    </div>
+                    <div className="booking__counter-buttons">
+                      {[1, 2, 3, 4, 5].map(num => (
+                        <button
+                          key={num}
+                          type="button"
+                          className={`booking__counter-btn ${form.bedrooms === num ? 'booking__counter-btn--active' : ''}`}
+                          onClick={() => set('bedrooms', num)}
+                        >
+                          {num >= 5 ? '5+' : num}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Bathrooms */}
+                  <div className="booking__counter-card">
+                    <div className="booking__counter-label">
+                      <Bath size={18} />
+                      <span>Bathrooms</span>
+                    </div>
+                    <div className="booking__counter-buttons">
+                      {[1, 1.5, 2, 2.5, 3, 4].map(num => (
+                        <button
+                          key={num}
+                          type="button"
+                          className={`booking__counter-btn ${form.bathrooms === num ? 'booking__counter-btn--active' : ''}`}
+                          onClick={() => set('bathrooms', num)}
+                        >
+                          {num >= 4 ? '4+' : num}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Add-on Extras */}
+              <div className="booking__extras-section">
+                <h4 className="booking__subheading">3. Optional Add-ons &amp; Extras</h4>
+                <div className="booking__extras-grid">
+                  {CLEANING_EXTRAS.map(extra => {
+                    const isSelected = form.extras.includes(extra.id);
+                    return (
+                      <button
+                        key={extra.id}
+                        type="button"
+                        className={`booking__extra-card ${isSelected ? 'booking__extra-card--selected' : ''}`}
+                        onClick={() => toggleExtra(extra.id)}
+                      >
+                        <div className="booking__extra-check">
+                          {isSelected ? <Check size={14} /> : <Plus size={14} />}
+                        </div>
+                        <div className="booking__extra-info">
+                          <strong>{extra.name}</strong>
+                          <span>{extra.description}</span>
+                        </div>
+                        <span className="booking__extra-price">+${extra.price}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
 
           {/* Step 2: Date & Time */}
           {step === 2 && (
             <div className="booking__step animate-fade-in">
-              <h3 className="booking__step-title">Pick a Date & Time</h3>
+              <h3 className="booking__step-title">Choose Preferred Date &amp; Time</h3>
               <div className="booking__datetime">
                 <div className="form-group">
-                  <label className="form-label" htmlFor="booking-date">Preferred Date</label>
+                  <label className="form-label" htmlFor="booking-date">Select Date</label>
                   <input
                     id="booking-date"
                     type="date"
@@ -231,11 +372,12 @@ export default function Booking() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" style={{ color: 'var(--color-gray-400)' }}>Preferred Time</label>
+                  <label className="form-label" style={{ color: 'var(--color-gray-400)' }}>Select Arrival Time Slot</label>
                   <div className="booking__time-grid">
                     {timeSlots.map(slot => (
                       <button
                         key={slot}
+                        type="button"
                         className={`booking__time-slot ${form.time === slot ? 'booking__time-slot--selected' : ''}`}
                         onClick={() => set('time', slot)}
                       >
@@ -252,7 +394,7 @@ export default function Booking() {
           {/* Step 3: Personal info */}
           {step === 3 && (
             <div className="booking__step animate-fade-in">
-              <h3 className="booking__step-title">Your Information</h3>
+              <h3 className="booking__step-title">Your Contact &amp; Property Information</h3>
               <div className="booking__info-grid">
                 <div className="form-group">
                   <label className="form-label" htmlFor="booking-name" style={{ color: 'var(--color-gray-400)' }}>Full Name</label>
@@ -260,7 +402,7 @@ export default function Booking() {
                     id="booking-name"
                     type="text"
                     className={`form-input form-input-dark ${errors.name ? 'error' : ''}`}
-                    placeholder="Your full name"
+                    placeholder="e.g. John Smith"
                     value={form.name}
                     onChange={e => set('name', e.target.value)}
                     maxLength={100}
@@ -269,12 +411,12 @@ export default function Booking() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="booking-email" style={{ color: 'var(--color-gray-400)' }}>Email</label>
+                  <label className="form-label" htmlFor="booking-email" style={{ color: 'var(--color-gray-400)' }}>Email Address</label>
                   <input
                     id="booking-email"
                     type="email"
                     className={`form-input form-input-dark ${errors.email ? 'error' : ''}`}
-                    placeholder="you@example.com"
+                    placeholder="john@example.com"
                     value={form.email}
                     onChange={e => set('email', e.target.value)}
                     maxLength={200}
@@ -283,12 +425,12 @@ export default function Booking() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="booking-phone" style={{ color: 'var(--color-gray-400)' }}>Phone</label>
+                  <label className="form-label" htmlFor="booking-phone" style={{ color: 'var(--color-gray-400)' }}>Phone Number (Mobile for SMS confirmation)</label>
                   <input
                     id="booking-phone"
                     type="tel"
                     className={`form-input form-input-dark ${errors.phone ? 'error' : ''}`}
-                    placeholder="(555) 123-4567"
+                    placeholder="(508) 555-0123"
                     value={form.phone}
                     onChange={e => set('phone', e.target.value)}
                     maxLength={20}
@@ -302,7 +444,7 @@ export default function Booking() {
                     id="booking-address"
                     type="text"
                     className={`form-input form-input-dark ${errors.address ? 'error' : ''}`}
-                    placeholder="Full address of the property"
+                    placeholder="123 Main St, Apt 4B, Worcester, MA 01604"
                     value={form.address}
                     onChange={e => set('address', e.target.value)}
                     maxLength={300}
@@ -311,11 +453,11 @@ export default function Booking() {
                 </div>
 
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label className="form-label" htmlFor="booking-notes" style={{ color: 'var(--color-gray-400)' }}>Special Requests (Optional)</label>
+                  <label className="form-label" htmlFor="booking-notes" style={{ color: 'var(--color-gray-400)' }}>Special Requests or Access Codes (Optional)</label>
                   <textarea
                     id="booking-notes"
                     className="form-textarea form-textarea-dark"
-                    placeholder="Any special instructions, access codes, pets, etc."
+                    placeholder="Any entry codes, pets on property, special focus areas..."
                     value={form.notes}
                     onChange={e => set('notes', e.target.value)}
                     rows={3}
@@ -323,25 +465,60 @@ export default function Booking() {
                   />
                 </div>
               </div>
+
+              {/* Order review summary */}
+              <div className="booking__summary-card">
+                <h4 className="booking__summary-header">
+                  <DollarSign size={18} />
+                  <span>Estimated Total &amp; Service Summary</span>
+                </h4>
+                <div className="booking__summary-rows">
+                  <div className="booking__summary-row">
+                    <span>Package:</span>
+                    <strong>{selectedService?.name}</strong>
+                  </div>
+                  <div className="booking__summary-row">
+                    <span>Property Size:</span>
+                    <strong>{form.bedrooms} Bed, {form.bathrooms} Bath</strong>
+                  </div>
+                  {form.extras.length > 0 && (
+                    <div className="booking__summary-row">
+                      <span>Add-ons:</span>
+                      <strong>{form.extras.map(eId => CLEANING_EXTRAS.find(e => e.id === eId)?.name).join(', ')}</strong>
+                    </div>
+                  )}
+                  <div className="booking__summary-row">
+                    <span>Schedule:</span>
+                    <strong>{form.date} at {form.time}</strong>
+                  </div>
+                  <div className="booking__summary-row booking__summary-row--total">
+                    <span>Estimated Total:</span>
+                    <strong className="booking__summary-price">${estimatedPrice}</strong>
+                  </div>
+                </div>
+                <p className="booking__summary-disclaimer">
+                  * No payment required now. Final quote confirmed with you via SMS/text or phone upon booking review.
+                </p>
+              </div>
             </div>
           )}
 
           {/* Navigation buttons */}
           <div className="booking__nav">
             {step > 1 && (
-              <button className="btn btn-secondary" onClick={prev}>
+              <button type="button" className="btn btn-secondary" onClick={prev}>
                 <ArrowLeft size={16} />
                 Back
               </button>
             )}
             <div style={{ flex: 1 }} />
             {step < 3 ? (
-              <button className="btn btn-primary" onClick={next}>
+              <button type="button" className="btn btn-primary" onClick={next}>
                 Continue
                 <ArrowRight size={16} />
               </button>
             ) : (
-              <button className="btn btn-primary btn-lg" onClick={handleSubmit} disabled={isSubmitting}>
+              <button type="button" className="btn btn-primary btn-lg" onClick={handleSubmit} disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
                     <span className="spinner spinner-sm" />
@@ -349,33 +526,13 @@ export default function Booking() {
                   </>
                 ) : (
                   <>
-                    Submit Request
+                    Complete Booking Request
                     <ArrowRight size={18} />
                   </>
                 )}
               </button>
             )}
           </div>
-
-          {/* Summary sidebar on step 3 */}
-          {step === 3 && selectedService && (
-            <div className="booking__summary">
-              <h4 className="booking__summary-title">Booking Summary</h4>
-              <div className="booking__summary-item">
-                <span>Service</span>
-                <strong>{selectedService.name}</strong>
-              </div>
-              <div className="booking__summary-item">
-                <span>Date</span>
-                <strong>{form.date}</strong>
-              </div>
-              <div className="booking__summary-item">
-                <span>Time</span>
-                <strong>{form.time}</strong>
-              </div>
-
-            </div>
-          )}
         </div>
       </div>
     </section>

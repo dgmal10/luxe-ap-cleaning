@@ -1,5 +1,5 @@
 /**
- * Admin Dashboard — Real-time bookings & messages with sound/toast notification and multi-view filters.
+ * Admin Dashboard — Real-time bookings with home size, instant quote calculator, SMS/WhatsApp/Email 1-click actions, and sound notifications.
  */
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -17,6 +17,12 @@ import {
   Bell,
   Calendar,
   Filter,
+  DollarSign,
+  Send,
+  MessageSquare as SmsIcon,
+  Sparkles,
+  BedDouble,
+  Bath,
 } from 'lucide-react';
 import {
   subscribeToAllBookings,
@@ -97,6 +103,7 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(formatDate(new Date()));
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
+  const [editingPrice, setEditingPrice] = useState<Record<string, string>>({});
   
   const isInitialLoad = useRef(true);
   const prevBookingsCount = useRef(0);
@@ -146,6 +153,40 @@ export default function Dashboard() {
     }
   };
 
+  // Helper to format clean phone digits for WhatsApp / SMS
+  const cleanPhone = (phone: string) => phone.replace(/\D/g, '');
+
+  const getQuotePrice = (booking: Booking) => {
+    const custom = editingPrice[booking.id];
+    if (custom !== undefined && custom !== '') return Number(custom);
+    return booking.finalPrice || booking.estimatedPrice || 160;
+  };
+
+  // Quick SMS Link
+  const getSmsLink = (booking: Booking) => {
+    const price = getQuotePrice(booking);
+    const text = `Hello ${booking.name}! Thank you for booking with LUXE A&P Cleaning. Your quote for ${booking.service} on ${booking.date} at ${booking.time} is $${price}. Please reply YES to confirm your appointment. Have a wonderful day!`;
+    const digits = cleanPhone(booking.phone);
+    return `sms:${digits}?&body=${encodeURIComponent(text)}`;
+  };
+
+  // Quick WhatsApp Link
+  const getWhatsAppLink = (booking: Booking) => {
+    const price = getQuotePrice(booking);
+    const text = `Hello ${booking.name}! ✨\n\nThank you for choosing *LUXE A&P Cleaning*.\n\nHere are your booking details:\n• *Service:* ${booking.service}\n• *Date & Time:* ${booking.date} at ${booking.time}\n• *Address:* ${booking.address}\n• *Total Quote:* $${price}\n\nPlease let us know if you would like to confirm your appointment!`;
+    let digits = cleanPhone(booking.phone);
+    if (digits.length === 10) digits = '1' + digits; // US country code
+    return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
+  };
+
+  // Quick Email Link
+  const getEmailLink = (booking: Booking) => {
+    const price = getQuotePrice(booking);
+    const subject = `LUXE A&P Cleaning — Appointment Confirmation & Quote ($${price})`;
+    const body = `Hello ${booking.name},\n\nThank you for requesting a cleaning service with LUXE A&P Cleaning.\n\nAppointment Summary:\n- Service: ${booking.service}\n- Scheduled: ${booking.date} at ${booking.time}\n- Address: ${booking.address}\n- Total Price: $${price}\n\nPlease reply to this email or text us at +1 (774) 360-4824 to confirm.\n\nWarm regards,\nLUXE A&P Cleaning Team`;
+    return `mailto:${booking.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
   // Metrics
   const todayStr = formatDate(new Date());
   const todayBookingsCount = allBookings.filter(b => b.date === todayStr).length;
@@ -179,7 +220,7 @@ export default function Dashboard() {
         <div>
           <h1 className="dashboard__title">Painel de Controle</h1>
           <p className="dashboard__date">
-            Acompanhamento em tempo real dos agendamentos e clientes
+            Acompanhamento em tempo real, orçamentos e mensagens
           </p>
         </div>
         <div className="dashboard__live-indicator">
@@ -316,6 +357,7 @@ export default function Dashboard() {
             {displayedBookings.map(booking => {
               const statusCfg = STATUS_CONFIG[booking.status] || STATUS_CONFIG.pending;
               const isExpanded = expandedBooking === booking.id;
+              const currentPrice = getQuotePrice(booking);
 
               return (
                 <div
@@ -328,7 +370,7 @@ export default function Dashboard() {
                   >
                     <div className="dashboard__booking-time">
                       <Clock size={14} />
-                      <span>{booking.time || 'Horário a definir'}</span>
+                      <span>{booking.time || 'A definir'}</span>
                     </div>
                     <div className="dashboard__booking-info">
                       <strong>{booking.name}</strong>
@@ -336,6 +378,14 @@ export default function Dashboard() {
                         {booking.service} &bull; <em style={{ fontStyle: 'normal', color: 'var(--color-gold)' }}>{formatDisplayDate(booking.date)}</em>
                       </span>
                     </div>
+
+                    {/* Price tag badge */}
+                    {(booking.estimatedPrice || booking.finalPrice) && (
+                      <span className="dashboard__price-badge">
+                        ${currentPrice}
+                      </span>
+                    )}
+
                     <span
                       className="dashboard__booking-status"
                       style={{
@@ -351,9 +401,32 @@ export default function Dashboard() {
 
                   {isExpanded && (
                     <div className="dashboard__booking-details animate-fade-in">
+                      {/* House Specifications */}
+                      <div className="dashboard__house-specs">
+                        {booking.bedrooms && (
+                          <div className="dashboard__spec-item">
+                            <BedDouble size={15} />
+                            <span>{booking.bedrooms} Quartos</span>
+                          </div>
+                        )}
+                        {booking.bathrooms && (
+                          <div className="dashboard__spec-item">
+                            <Bath size={15} />
+                            <span>{booking.bathrooms} Banheiros</span>
+                          </div>
+                        )}
+                        {booking.extras && booking.extras.length > 0 && (
+                          <div className="dashboard__spec-item dashboard__spec-item--extras">
+                            <Sparkles size={15} />
+                            <span>Extras: <strong>{booking.extras.join(', ')}</strong></span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Contact & Location Info */}
                       <div className="dashboard__booking-detail">
                         <User size={14} />
-                        <span><strong>Nome:</strong> {booking.name}</span>
+                        <span><strong>Cliente:</strong> {booking.name}</span>
                       </div>
                       <div className="dashboard__booking-detail">
                         <Mail size={14} />
@@ -378,6 +451,56 @@ export default function Dashboard() {
                         </div>
                       )}
 
+                      {/* Quote Pricing Box & 1-Click Send Quote */}
+                      <div className="dashboard__quote-box">
+                        <div className="dashboard__quote-header">
+                          <div className="dashboard__quote-price-input">
+                            <DollarSign size={16} />
+                            <span>Valor do Orçamento:</span>
+                            <input
+                              type="number"
+                              className="dashboard__price-field"
+                              value={editingPrice[booking.id] !== undefined ? editingPrice[booking.id] : (booking.finalPrice || booking.estimatedPrice || '')}
+                              onChange={e => setEditingPrice({ ...editingPrice, [booking.id]: e.target.value })}
+                              placeholder="180"
+                            />
+                          </div>
+                          <span className="dashboard__quote-hint">
+                            (Estimado pelo cliente: ${booking.estimatedPrice || currentPrice})
+                          </span>
+                        </div>
+
+                        <div className="dashboard__quote-buttons">
+                          <a
+                            href={getSmsLink(booking)}
+                            className="btn btn-sm btn-quote btn-sms"
+                            title="Enviar SMS em inglês"
+                          >
+                            <SmsIcon size={14} />
+                            📱 Enviar SMS (iMessage)
+                          </a>
+                          <a
+                            href={getWhatsAppLink(booking)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-sm btn-quote btn-whatsapp"
+                            title="Enviar no WhatsApp"
+                          >
+                            <Send size={14} />
+                            💬 Enviar WhatsApp
+                          </a>
+                          <a
+                            href={getEmailLink(booking)}
+                            className="btn btn-sm btn-quote btn-email"
+                            title="Enviar E-mail formal"
+                          >
+                            <Mail size={14} />
+                            ✉️ Enviar E-mail
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
                       <div className="dashboard__booking-actions">
                         {booking.status === 'pending' && (
                           <>

@@ -18,6 +18,10 @@ export interface GalleryImage {
 /** Booking form data */
 export interface BookingFormData {
   service: string;
+  bedrooms: number;
+  bathrooms: number;
+  extras: string[];
+  estimatedPrice: number;
   date: string;
   time: string;
   name: string;
@@ -48,6 +52,11 @@ export interface NavItem {
 export interface Booking {
   id: string;
   service: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  extras?: string[];
+  estimatedPrice?: number;
+  finalPrice?: number;
   date: string;
   time: string;
   name: string;

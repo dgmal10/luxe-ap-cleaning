@@ -26,11 +26,14 @@ export async function sendBookingEmail(booking: BookingFormData): Promise<boolea
       client_email: booking.email,
       client_phone: booking.phone,
       service_name: booking.service,
+      home_size: `${booking.bedrooms} Bed, ${booking.bathrooms} Bath`,
+      selected_extras: booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
+      estimated_price: `$${booking.estimatedPrice}`,
       service_date: booking.date,
       service_time: booking.time,
       service_address: booking.address,
       service_notes: booking.notes || 'No special notes provided',
-      subject: `✨ New Booking: ${booking.service} - ${booking.name}`,
+      subject: `✨ New Booking ($${booking.estimatedPrice}): ${booking.service} - ${booking.name}`,
     };
 
     await emailjs.send(SERVICE_ID, BOOKING_TEMPLATE_ID, templateParams, PUBLIC_KEY);

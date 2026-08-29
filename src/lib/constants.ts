@@ -69,6 +69,51 @@ export const SERVICES: Service[] = [
   },
 ];
 
+/** Cleaning Add-ons (Extras) */
+export interface CleaningExtra {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+}
+
+export const CLEANING_EXTRAS: CleaningExtra[] = [
+  { id: 'oven', name: 'Inside Oven', price: 35, description: 'Deep degrease & bake-off interior' },
+  { id: 'fridge', name: 'Inside Fridge', price: 35, description: 'Disinfect shelves & drawers' },
+  { id: 'cabinets', name: 'Inside Cabinets', price: 35, description: 'Wipe & vacuum interior storage' },
+  { id: 'windows', name: 'Interior Windows', price: 40, description: 'Glass, sills & trim detailed' },
+  { id: 'pets', name: 'Pet Hair Treatment', price: 20, description: 'Specialized lint & fur removal' },
+];
+
+/** Base price for 1 Bedroom / 1 Bathroom */
+export const BASE_PRICING: Record<string, number> = {
+  'standard': 140,
+  'deep': 210,
+  'move': 270,
+  'post-construction': 320,
+};
+
+export const PRICE_PER_EXTRA_BEDROOM = 25;
+export const PRICE_PER_EXTRA_BATHROOM = 30;
+
+/** Calculate estimated price in USD */
+export function calculateEstimatedPrice(
+  serviceId: string,
+  bedrooms: number,
+  bathrooms: number,
+  selectedExtras: string[]
+): number {
+  const base = BASE_PRICING[serviceId] || 140;
+  const extraBeds = Math.max(0, bedrooms - 1) * PRICE_PER_EXTRA_BEDROOM;
+  const extraBaths = Math.max(0, bathrooms - 1) * PRICE_PER_EXTRA_BATHROOM;
+  const extrasTotal = selectedExtras.reduce((sum, extraId) => {
+    const extra = CLEANING_EXTRAS.find(e => e.id === extraId);
+    return sum + (extra ? extra.price : 0);
+  }, 0);
+
+  return base + extraBeds + extraBaths + extrasTotal;
+}
+
 /** Available time slots (placeholder) */
 export const TIME_SLOTS = [
   '8:00 AM',

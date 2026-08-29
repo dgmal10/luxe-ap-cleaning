@@ -315,6 +315,151 @@
   white-space: nowrap;
 }
 
+.dashboard__price-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: var(--color-gold-muted);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--color-gold);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--text-sm);
+}
+
+/* House Specs */
+.dashboard__house-specs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  flex-wrap: wrap;
+}
+
+.dashboard__spec-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--color-gray-300);
+}
+
+.dashboard__spec-item svg {
+  color: var(--color-gold);
+}
+
+.dashboard__spec-item--extras strong {
+  color: var(--color-gold);
+}
+
+/* Quote Pricing Box & 1-Click Send */
+.dashboard__quote-box {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(30, 30, 30, 0.6) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-top: var(--space-2);
+}
+
+.dashboard__quote-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.dashboard__quote-price-input {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-white);
+  font-weight: 600;
+}
+
+.dashboard__quote-price-input svg {
+  color: var(--color-gold);
+}
+
+.dashboard__price-field {
+  width: 90px;
+  padding: 4px 8px;
+  background: var(--surface-primary);
+  border: 1px solid var(--color-gold);
+  border-radius: var(--radius-sm);
+  color: var(--color-gold);
+  font-size: var(--text-base);
+  font-weight: 700;
+  text-align: center;
+}
+
+.dashboard__price-field:focus {
+  outline: none;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+.dashboard__quote-hint {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+}
+
+.dashboard__quote-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.btn-quote {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-decoration: none;
+  font-size: var(--text-xs) !important;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast);
+}
+
+.btn-sms {
+  background: #3498db;
+  color: #ffffff !important;
+}
+
+.btn-sms:hover {
+  background: #2980b9;
+  transform: translateY(-1px);
+}
+
+.btn-whatsapp {
+  background: #25d366;
+  color: #ffffff !important;
+}
+
+.btn-whatsapp:hover {
+  background: #1ebc59;
+  transform: translateY(-1px);
+}
+
+.btn-email {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--color-white) !important;
+}
+
+.btn-email:hover {
+  border-color: var(--color-gold);
+  color: var(--color-gold) !important;
+  transform: translateY(-1px);
+}
+
 /* Expanded details */
 .dashboard__booking-details {
   padding: 0 var(--space-4) var(--space-4);

@@ -14,6 +14,8 @@ import {
   orderBy,
   setDoc,
   Timestamp,
+  onSnapshot,
+  type Unsubscribe,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from './firebase';
 import type {
@@ -206,6 +208,38 @@ export async function getAllBookings(): Promise<Booking[]> {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }) as Booking);
 }
 
+/** Subscribe to all bookings in real time */
+export function subscribeToAllBookings(callback: (bookings: Booking[]) => void): Unsubscribe {
+  if (!isFirebaseConfigured) {
+    const fetchLocal = () => callback(getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS));
+    fetchLocal();
+    window.addEventListener('storage', fetchLocal);
+    return () => window.removeEventListener('storage', fetchLocal);
+  }
+
+  const q = query(
+    collection(db, 'bookings'),
+    orderBy('createdAt', 'desc')
+  );
+  return onSnapshot(q, (snap) => {
+    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Booking);
+    callback(list);
+  }, (err) => {
+    console.error('Real-time bookings subscription error:', err);
+  });
+}
+
+/** Delete a booking */
+export async function deleteBooking(id: string): Promise<void> {
+  if (!isFirebaseConfigured) {
+    const list = getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS);
+    setLocal('luxe_bookings', list.filter(b => b.id !== id));
+    return;
+  }
+
+  await deleteDoc(doc(db, 'bookings', id));
+}
+
 /** Update booking status */
 export async function updateBookingStatus(
   id: string,
@@ -218,6 +252,27 @@ export async function updateBookingStatus(
   }
 
   await updateDoc(doc(db, 'bookings', id), { status });
+}
+
+/** Subscribe to all messages in real time */
+export function subscribeToAllMessages(callback: (messages: ContactMessage[]) => void): Unsubscribe {
+  if (!isFirebaseConfigured) {
+    const fetchLocal = () => callback(getLocal<ContactMessage[]>('luxe_messages', INITIAL_DEMO_MESSAGES));
+    fetchLocal();
+    window.addEventListener('storage', fetchLocal);
+    return () => window.removeEventListener('storage', fetchLocal);
+  }
+
+  const q = query(
+    collection(db, 'messages'),
+    orderBy('createdAt', 'desc')
+  );
+  return onSnapshot(q, (snap) => {
+    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }) as ContactMessage);
+    callback(list);
+  }, (err) => {
+    console.error('Real-time messages subscription error:', err);
+  });
 }
 
 /* ============================================================

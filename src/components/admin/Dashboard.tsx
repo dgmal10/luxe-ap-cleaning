@@ -1,7 +1,7 @@
 /**
- * Admin Dashboard — today's bookings overview with quick actions.
+ * Admin Dashboard — Real-time bookings & messages with sound/toast notification and multi-view filters.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   CalendarCheck,
   MessageSquare,
@@ -9,13 +9,21 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  RefreshCw,
+  Trash2,
   User,
   MapPin,
   Phone,
   Mail,
+  Bell,
+  Calendar,
+  Filter,
 } from 'lucide-react';
-import { getBookingsByDate, updateBookingStatus, getMessages } from '../../lib/firestore';
+import {
+  subscribeToAllBookings,
+  subscribeToAllMessages,
+  updateBookingStatus,
+  deleteBooking,
+} from '../../lib/firestore';
 import type { Booking, ContactMessage } from '../../types';
 import './Dashboard.css';
 
@@ -23,13 +31,53 @@ function formatDate(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
-function formatDisplayDate(date: Date): string {
-  return date.toLocaleDateString('pt-BR', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+function formatDisplayDate(dateStr: string): string {
+  try {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('pt-BR', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+/** Play subtle luxury notification chime via Web Audio API */
+function playNotificationChime() {
+  try {
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    
+    // First tone (E5)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(659.25, ctx.currentTime);
+    gain1.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start();
+    osc1.stop(ctx.currentTime + 0.5);
+
+    // Second tone (B5)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(987.77, ctx.currentTime + 0.12);
+    gain2.gain.setValueAtTime(0.2, ctx.currentTime + 0.12);
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(ctx.currentTime + 0.12);
+    osc2.stop(ctx.currentTime + 0.7);
+  } catch {
+    // Ignore audio autoplay policy restrictions
+  }
 }
 
 const STATUS_CONFIG = {
@@ -39,78 +87,128 @@ const STATUS_CONFIG = {
   cancelled: { label: 'Cancelado', color: 'var(--color-error)', icon: <XCircle size={14} /> },
 };
 
+type FilterTab = 'all' | 'pending' | 'confirmed' | 'date';
+
 export default function Dashboard() {
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [allBookings, setAllBookings] = useState<Booking[]>([]);
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [selectedDate, setSelectedDate] = useState(formatDate(new Date()));
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
+  
+  const isInitialLoad = useRef(true);
+  const prevBookingsCount = useRef(0);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [b, m] = await Promise.all([
-        getBookingsByDate(selectedDate),
-        getMessages(),
-      ]);
-      setBookings(b);
-      setMessages(m);
-    } catch (err) {
-      console.error('Failed to fetch dashboard data:', err);
-    } finally {
+  // Subscribe to real-time bookings
+  useEffect(() => {
+    const unsubBookings = subscribeToAllBookings((bookings) => {
+      setAllBookings(bookings);
       setLoading(false);
-    }
-  }, [selectedDate]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+      if (!isInitialLoad.current && bookings.length > prevBookingsCount.current) {
+        const newest = bookings[0];
+        const clientName = newest?.name || 'Cliente';
+        playNotificationChime();
+        setNotification(`🔔 Novo agendamento recebido de ${clientName}!`);
+        setTimeout(() => setNotification(null), 6000);
+      }
+
+      prevBookingsCount.current = bookings.length;
+      isInitialLoad.current = false;
+    });
+
+    const unsubMessages = subscribeToAllMessages((msgs) => {
+      setMessages(msgs);
+    });
+
+    return () => {
+      unsubBookings();
+      unsubMessages();
+    };
+  }, []);
 
   const handleStatusChange = async (id: string, status: Booking['status']) => {
     try {
       await updateBookingStatus(id, status);
-      setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b));
     } catch (err) {
-      console.error('Failed to update booking:', err);
+      console.error('Failed to update booking status:', err);
     }
   };
 
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Tem certeza que deseja excluir o agendamento de "${name}"?`)) return;
+    try {
+      await deleteBooking(id);
+    } catch (err) {
+      console.error('Failed to delete booking:', err);
+    }
+  };
+
+  // Metrics
+  const todayStr = formatDate(new Date());
+  const todayBookingsCount = allBookings.filter(b => b.date === todayStr).length;
+  const pendingBookings = allBookings.filter(b => b.status === 'pending').length;
+  const confirmedBookings = allBookings.filter(b => b.status === 'confirmed').length;
   const unreadMessages = messages.filter(m => !m.read).length;
-  const pendingBookings = bookings.filter(b => b.status === 'pending').length;
-  const confirmedBookings = bookings.filter(b => b.status === 'confirmed').length;
+
+  // Filtered bookings
+  let displayedBookings = allBookings;
+  if (activeTab === 'pending') {
+    displayedBookings = allBookings.filter(b => b.status === 'pending');
+  } else if (activeTab === 'confirmed') {
+    displayedBookings = allBookings.filter(b => b.status === 'confirmed');
+  } else if (activeTab === 'date') {
+    displayedBookings = allBookings.filter(b => b.date === selectedDate);
+  }
 
   return (
     <div className="dashboard">
-      {/* Page title */}
+      {/* Real-time Notification Toast */}
+      {notification && (
+        <div className="dashboard__toast animate-fade-in-up">
+          <Bell size={18} className="dashboard__toast-icon" />
+          <span>{notification}</span>
+          <button className="dashboard__toast-close" onClick={() => setNotification(null)}>✕</button>
+        </div>
+      )}
+
+      {/* Page header */}
       <div className="dashboard__header">
         <div>
           <h1 className="dashboard__title">Painel de Controle</h1>
-          <p className="dashboard__date">{formatDisplayDate(new Date(selectedDate + 'T12:00:00'))}</p>
+          <p className="dashboard__date">
+            Acompanhamento em tempo real dos agendamentos e clientes
+          </p>
         </div>
-        <div className="dashboard__actions">
-          <input
-            type="date"
-            className="dashboard__date-picker"
-            value={selectedDate}
-            onChange={e => setSelectedDate(e.target.value)}
-          />
-          <button className="dashboard__refresh" onClick={fetchData} aria-label="Atualizar">
-            <RefreshCw size={18} />
-          </button>
+        <div className="dashboard__live-indicator">
+          <span className="dashboard__live-dot" />
+          <span>Ao Vivo</span>
         </div>
       </div>
 
       {/* Metric cards */}
       <div className="dashboard__metrics">
-        <div className="dashboard__metric-card">
+        <div
+          className={`dashboard__metric-card ${activeTab === 'all' ? 'dashboard__metric-card--selected' : ''}`}
+          onClick={() => setActiveTab('all')}
+          style={{ cursor: 'pointer' }}
+        >
           <div className="dashboard__metric-icon dashboard__metric-icon--gold">
             <CalendarCheck size={22} />
           </div>
           <div>
-            <p className="dashboard__metric-value">{bookings.length}</p>
-            <p className="dashboard__metric-label">Agendamentos de Hoje</p>
+            <p className="dashboard__metric-value">{allBookings.length}</p>
+            <p className="dashboard__metric-label">Total de Agendamentos</p>
           </div>
         </div>
 
-        <div className="dashboard__metric-card">
+        <div
+          className={`dashboard__metric-card ${activeTab === 'pending' ? 'dashboard__metric-card--selected' : ''}`}
+          onClick={() => setActiveTab('pending')}
+          style={{ cursor: 'pointer' }}
+        >
           <div className="dashboard__metric-icon dashboard__metric-icon--warning">
             <AlertCircle size={22} />
           </div>
@@ -120,7 +218,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="dashboard__metric-card">
+        <div
+          className={`dashboard__metric-card ${activeTab === 'confirmed' ? 'dashboard__metric-card--selected' : ''}`}
+          onClick={() => setActiveTab('confirmed')}
+          style={{ cursor: 'pointer' }}
+        >
           <div className="dashboard__metric-icon dashboard__metric-icon--info">
             <Clock size={22} />
           </div>
@@ -141,26 +243,78 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Filter Tabs & Date Picker */}
+      <div className="dashboard__filters-bar">
+        <div className="dashboard__tabs">
+          <button
+            className={`dashboard__tab ${activeTab === 'all' ? 'dashboard__tab--active' : ''}`}
+            onClick={() => setActiveTab('all')}
+          >
+            <Filter size={15} />
+            Todos ({allBookings.length})
+          </button>
+          <button
+            className={`dashboard__tab ${activeTab === 'pending' ? 'dashboard__tab--active' : ''}`}
+            onClick={() => setActiveTab('pending')}
+          >
+            <AlertCircle size={15} />
+            Pendentes ({pendingBookings})
+          </button>
+          <button
+            className={`dashboard__tab ${activeTab === 'confirmed' ? 'dashboard__tab--active' : ''}`}
+            onClick={() => setActiveTab('confirmed')}
+          >
+            <CheckCircle size={15} />
+            Confirmados ({confirmedBookings})
+          </button>
+          <button
+            className={`dashboard__tab ${activeTab === 'date' ? 'dashboard__tab--active' : ''}`}
+            onClick={() => setActiveTab('date')}
+          >
+            <Calendar size={15} />
+            Por Data {todayBookingsCount > 0 && `(Hoje: ${todayBookingsCount})`}
+          </button>
+        </div>
+
+        {activeTab === 'date' && (
+          <div className="dashboard__date-picker-wrap animate-fade-in">
+            <input
+              type="date"
+              className="dashboard__date-picker"
+              value={selectedDate}
+              onChange={e => setSelectedDate(e.target.value)}
+            />
+          </div>
+        )}
+      </div>
+
       {/* Bookings list */}
       <div className="dashboard__section">
         <h2 className="dashboard__section-title">
           <CalendarCheck size={20} />
-          Agendamentos para {selectedDate}
+          {activeTab === 'all' && 'Todos os Agendamentos'}
+          {activeTab === 'pending' && 'Agendamentos Pendentes de Confirmação'}
+          {activeTab === 'confirmed' && 'Agendamentos Confirmados'}
+          {activeTab === 'date' && `Agendamentos para ${formatDisplayDate(selectedDate)}`}
         </h2>
 
         {loading ? (
           <div className="dashboard__loading">
             <div className="spinner" style={{ color: 'var(--color-gold)' }} />
           </div>
-        ) : bookings.length === 0 ? (
+        ) : displayedBookings.length === 0 ? (
           <div className="dashboard__empty">
             <CalendarCheck size={40} />
-            <p>Nenhum agendamento para esta data.</p>
+            <p>
+              {activeTab === 'date'
+                ? `Nenhum agendamento encontrado para ${formatDisplayDate(selectedDate)}.`
+                : 'Nenhum agendamento encontrado nesta categoria.'}
+            </p>
           </div>
         ) : (
           <div className="dashboard__bookings">
-            {bookings.map(booking => {
-              const statusCfg = STATUS_CONFIG[booking.status];
+            {displayedBookings.map(booking => {
+              const statusCfg = STATUS_CONFIG[booking.status] || STATUS_CONFIG.pending;
               const isExpanded = expandedBooking === booking.id;
 
               return (
@@ -174,11 +328,13 @@ export default function Dashboard() {
                   >
                     <div className="dashboard__booking-time">
                       <Clock size={14} />
-                      {booking.time}
+                      <span>{booking.time || 'Horário a definir'}</span>
                     </div>
                     <div className="dashboard__booking-info">
                       <strong>{booking.name}</strong>
-                      <span>{booking.service}</span>
+                      <span>
+                        {booking.service} &bull; <em style={{ fontStyle: 'normal', color: 'var(--color-gold)' }}>{formatDisplayDate(booking.date)}</em>
+                      </span>
                     </div>
                     <span
                       className="dashboard__booking-status"
@@ -197,23 +353,28 @@ export default function Dashboard() {
                     <div className="dashboard__booking-details animate-fade-in">
                       <div className="dashboard__booking-detail">
                         <User size={14} />
-                        <span>{booking.name}</span>
+                        <span><strong>Nome:</strong> {booking.name}</span>
                       </div>
                       <div className="dashboard__booking-detail">
                         <Mail size={14} />
-                        <span>{booking.email}</span>
+                        <span><strong>E-mail:</strong> <a href={`mailto:${booking.email}`}>{booking.email}</a></span>
                       </div>
                       <div className="dashboard__booking-detail">
                         <Phone size={14} />
-                        <span>{booking.phone}</span>
+                        <span><strong>Telefone:</strong> <a href={`tel:${booking.phone}`}>{booking.phone}</a></span>
                       </div>
                       <div className="dashboard__booking-detail">
                         <MapPin size={14} />
-                        <span>{booking.address}</span>
+                        <span><strong>Endereço:</strong> {booking.address}</span>
                       </div>
+                      <div className="dashboard__booking-detail">
+                        <Calendar size={14} />
+                        <span><strong>Data do Serviço:</strong> {formatDisplayDate(booking.date)} às {booking.time}</span>
+                      </div>
+
                       {booking.notes && (
                         <div className="dashboard__booking-notes">
-                          <strong>Observações:</strong> {booking.notes}
+                          <strong>Observações do Cliente:</strong> {booking.notes}
                         </div>
                       )}
 
@@ -226,11 +387,11 @@ export default function Dashboard() {
                               onClick={() => handleStatusChange(booking.id, 'confirmed')}
                             >
                               <CheckCircle size={14} />
-                              Confirmar
+                              Confirmar Agendamento
                             </button>
                             <button
                               className="btn btn-sm"
-                              style={{ background: 'var(--color-error)', color: '#fff' }}
+                              style={{ background: 'rgba(231,76,60,0.15)', color: 'var(--color-error)' }}
                               onClick={() => handleStatusChange(booking.id, 'cancelled')}
                             >
                               <XCircle size={14} />
@@ -248,6 +409,21 @@ export default function Dashboard() {
                             Marcar como Concluído
                           </button>
                         )}
+
+                        <button
+                          className="btn btn-sm"
+                          style={{
+                            background: 'transparent',
+                            border: '1px solid rgba(231,76,60,0.3)',
+                            color: 'var(--color-error)',
+                            marginLeft: 'auto',
+                          }}
+                          onClick={() => handleDelete(booking.id, booking.name)}
+                          title="Excluir agendamento"
+                        >
+                          <Trash2 size={14} />
+                          Excluir
+                        </button>
                       </div>
                     </div>
                   )}

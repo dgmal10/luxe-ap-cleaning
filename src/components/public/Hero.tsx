@@ -17,7 +17,7 @@ export default function Hero() {
       <div className="container hero__content">
         <div className="hero__badge animate-fade-in-up">
           <Sparkles size={14} />
-          <span>Licensed & Insured</span>
+          <span>Premium Cleaning Services</span>
         </div>
 
         <h1 className="hero__title animate-fade-in-up delay-1">

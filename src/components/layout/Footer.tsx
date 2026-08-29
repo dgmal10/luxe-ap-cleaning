@@ -20,7 +20,7 @@ export default function Footer() {
             />
             <p className="footer__desc">
               Premium residential cleaning services with meticulous attention to detail.
-              Licensed, insured, and dedicated to making your home shine.
+              Dedicated to making your home shine with elegance and care.
             </p>
           </div>
 
@@ -54,11 +54,11 @@ export default function Footer() {
           </div>
 
           <div className="footer__trust">
-            <h4 className="footer__heading">Trust & Safety</h4>
+            <h4 className="footer__heading">Our Promise</h4>
             <div className="footer__badges">
-              <span className="footer__badge">✓ Licensed</span>
-              <span className="footer__badge">✓ Insured</span>
-              <span className="footer__badge">✓ Background Checked</span>
+              <span className="footer__badge">✓ 100% Satisfaction</span>
+              <span className="footer__badge">✓ Eco-Friendly Products</span>
+              <span className="footer__badge">✓ Detailed & Reliable</span>
             </div>
           </div>
         </div>

@@ -3,7 +3,7 @@ import { useRevealOnScroll } from '../../hooks/useUtils';
 import './About.css';
 
 const TRUST_ITEMS = [
-  { icon: Shield, label: 'Licensed & Insured', desc: 'Full coverage for your peace of mind' },
+  { icon: Shield, label: '100% Guaranteed', desc: 'Your complete satisfaction is our priority' },
   { icon: Award, label: 'Premium Quality', desc: 'Meticulous attention to every detail' },
   { icon: Heart, label: 'Trusted by Hundreds', desc: '5-star rated by our clients' },
   { icon: Clock, label: 'Reliable & Punctual', desc: 'Always on time, every time' },
@@ -55,7 +55,7 @@ export default function About() {
             <p className="about__text">
               We use professional-grade, eco-friendly products that are safe for
               your family and pets. Your trust is everything to us, which is why
-              we're fully licensed, insured, and background-checked.
+              we treat every home with the highest level of care, respect, and dedication.
             </p>
 
             <div className="about__trust-grid">

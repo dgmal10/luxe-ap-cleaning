@@ -18,13 +18,13 @@ import type { GalleryItem } from '../../types';
 import './GalleryAdmin.css';
 
 const CATEGORIES = [
-  'Living Room',
-  'Kitchen',
-  'Bathroom',
-  'Bedroom',
-  'Office',
-  'Before & After',
-  'Other',
+  'Sala de Estar',
+  'Cozinha',
+  'Banheiro',
+  'Quarto',
+  'Escritório',
+  'Antes e Depois',
+  'Outros',
 ];
 
 export default function GalleryAdmin() {
@@ -59,7 +59,7 @@ export default function GalleryAdmin() {
   const handleFileSelect = (file: File) => {
     if (!file.type.startsWith('image/')) return;
     if (file.size > 10 * 1024 * 1024) {
-      alert('Image must be under 10MB');
+      alert('A imagem deve ter no máximo 10MB.');
       return;
     }
     setUploadFile(file);
@@ -90,7 +90,7 @@ export default function GalleryAdmin() {
       await addGalleryImage({
         src: url,
         storagePath,
-        alt: uploadAlt || `${uploadCategory} cleaning result`,
+        alt: uploadAlt || `Limpeza de ${uploadCategory}`,
         category: uploadCategory,
       });
       setUploadProgress(100);
@@ -102,14 +102,14 @@ export default function GalleryAdmin() {
       }, 500);
     } catch (err) {
       console.error('Failed to upload:', err);
-      alert('Upload failed. Please try again.');
+      alert('Falha no envio da imagem. Tente novamente.');
     } finally {
       setUploading(false);
     }
   };
 
   const handleDelete = async (img: GalleryItem) => {
-    if (!confirm('Delete this image? This cannot be undone.')) return;
+    if (!confirm('Excluir esta foto? Esta ação não pode ser desfeita.')) return;
     setDeleting(img.id);
     try {
       // Delete from Storage
@@ -141,11 +141,11 @@ export default function GalleryAdmin() {
       {/* Header */}
       <div className="gallery-admin__header">
         <div>
-          <h1 className="gallery-admin__title">Gallery</h1>
-          <p className="gallery-admin__subtitle">{images.length} photos uploaded</p>
+          <h1 className="gallery-admin__title">Galeria de Fotos</h1>
+          <p className="gallery-admin__subtitle">{images.length} foto{images.length !== 1 ? 's' : ''} cadastrada{images.length !== 1 ? 's' : ''}</p>
         </div>
         <div className="gallery-admin__actions">
-          <button className="gallery-admin__refresh" onClick={fetchImages} aria-label="Refresh">
+          <button className="gallery-admin__refresh" onClick={fetchImages} aria-label="Atualizar">
             <RefreshCw size={18} />
           </button>
           <button
@@ -153,7 +153,7 @@ export default function GalleryAdmin() {
             onClick={() => fileInputRef.current?.click()}
           >
             <ImagePlus size={16} />
-            Add Photo
+            Adicionar Foto
           </button>
           <input
             ref={fileInputRef}
@@ -174,15 +174,15 @@ export default function GalleryAdmin() {
           <div className="overlay" onClick={resetUpload} />
           <div className="gallery-admin__upload-modal">
             <div className="gallery-admin__upload-header">
-              <h3>Upload Photo</h3>
-              <button onClick={resetUpload} aria-label="Close">
+              <h3>Enviar Nova Foto</h3>
+              <button onClick={resetUpload} aria-label="Fechar">
                 <X size={20} />
               </button>
             </div>
 
             {uploadPreview && (
               <div className="gallery-admin__upload-preview">
-                <img src={uploadPreview} alt="Preview" />
+                <img src={uploadPreview} alt="Prévia" />
               </div>
             )}
 
@@ -190,7 +190,7 @@ export default function GalleryAdmin() {
               <div className="gallery-admin__upload-field">
                 <label>
                   <Tag size={14} />
-                  Category
+                  Categoria
                 </label>
                 <select
                   className="schedule__input schedule__select"
@@ -206,12 +206,12 @@ export default function GalleryAdmin() {
               <div className="gallery-admin__upload-field">
                 <label>
                   <FileText size={14} />
-                  Description (optional)
+                  Descrição (opcional)
                 </label>
                 <input
                   type="text"
                   className="schedule__input"
-                  placeholder="Describe the image..."
+                  placeholder="Ex: Cozinha limpa e higienizada..."
                   value={uploadAlt}
                   onChange={e => setUploadAlt(e.target.value)}
                   maxLength={200}
@@ -230,7 +230,7 @@ export default function GalleryAdmin() {
 
             <div className="gallery-admin__upload-actions">
               <button className="btn btn-secondary btn-sm" onClick={resetUpload} disabled={uploading}>
-                Cancel
+                Cancelar
               </button>
               <button
                 className="btn btn-primary"
@@ -240,12 +240,12 @@ export default function GalleryAdmin() {
                 {uploading ? (
                   <>
                     <span className="spinner spinner-sm" />
-                    Uploading...
+                    Enviando...
                   </>
                 ) : (
                   <>
                     <Upload size={16} />
-                    Upload
+                    Enviar Foto
                   </>
                 )}
               </button>
@@ -262,8 +262,8 @@ export default function GalleryAdmin() {
         onClick={() => fileInputRef.current?.click()}
       >
         <Upload size={32} />
-        <p>Drag & drop an image here, or click to browse</p>
-        <span>JPEG, PNG, WebP — Max 10MB</span>
+        <p>Arraste e solte uma foto aqui, ou clique para buscar</p>
+        <span>JPEG, PNG, WebP — Máx 10MB</span>
       </div>
 
       {/* Gallery Grid */}
@@ -274,7 +274,7 @@ export default function GalleryAdmin() {
       ) : images.length === 0 ? (
         <div className="gallery-admin__empty">
           <ImageIcon size={48} />
-          <p>No photos yet. Upload your first work photo!</p>
+          <p>Nenhuma foto cadastrada ainda. Envie a primeira foto dos seus serviços!</p>
         </div>
       ) : (
         <div className="gallery-admin__grid">
@@ -292,7 +292,7 @@ export default function GalleryAdmin() {
                   className="gallery-admin__item-delete"
                   onClick={() => handleDelete(img)}
                   disabled={deleting === img.id}
-                  aria-label="Delete image"
+                  aria-label="Excluir foto"
                 >
                   {deleting === img.id ? (
                     <span className="spinner spinner-sm" />

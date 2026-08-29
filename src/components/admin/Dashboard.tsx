@@ -24,7 +24,7 @@ function formatDate(date: Date): string {
 }
 
 function formatDisplayDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString('pt-BR', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -33,10 +33,10 @@ function formatDisplayDate(date: Date): string {
 }
 
 const STATUS_CONFIG = {
-  pending: { label: 'Pending', color: 'var(--color-warning)', icon: <AlertCircle size={14} /> },
-  confirmed: { label: 'Confirmed', color: 'var(--color-info)', icon: <Clock size={14} /> },
-  completed: { label: 'Completed', color: 'var(--color-success)', icon: <CheckCircle size={14} /> },
-  cancelled: { label: 'Cancelled', color: 'var(--color-error)', icon: <XCircle size={14} /> },
+  pending: { label: 'Pendente', color: 'var(--color-warning)', icon: <AlertCircle size={14} /> },
+  confirmed: { label: 'Confirmado', color: 'var(--color-info)', icon: <Clock size={14} /> },
+  completed: { label: 'Concluído', color: 'var(--color-success)', icon: <CheckCircle size={14} /> },
+  cancelled: { label: 'Cancelado', color: 'var(--color-error)', icon: <XCircle size={14} /> },
 };
 
 export default function Dashboard() {
@@ -82,7 +82,7 @@ export default function Dashboard() {
       {/* Page title */}
       <div className="dashboard__header">
         <div>
-          <h1 className="dashboard__title">Dashboard</h1>
+          <h1 className="dashboard__title">Painel de Controle</h1>
           <p className="dashboard__date">{formatDisplayDate(new Date(selectedDate + 'T12:00:00'))}</p>
         </div>
         <div className="dashboard__actions">
@@ -92,7 +92,7 @@ export default function Dashboard() {
             value={selectedDate}
             onChange={e => setSelectedDate(e.target.value)}
           />
-          <button className="dashboard__refresh" onClick={fetchData} aria-label="Refresh">
+          <button className="dashboard__refresh" onClick={fetchData} aria-label="Atualizar">
             <RefreshCw size={18} />
           </button>
         </div>
@@ -106,7 +106,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="dashboard__metric-value">{bookings.length}</p>
-            <p className="dashboard__metric-label">Today's Bookings</p>
+            <p className="dashboard__metric-label">Agendamentos de Hoje</p>
           </div>
         </div>
 
@@ -116,7 +116,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="dashboard__metric-value">{pendingBookings}</p>
-            <p className="dashboard__metric-label">Pending</p>
+            <p className="dashboard__metric-label">Pendentes</p>
           </div>
         </div>
 
@@ -126,7 +126,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="dashboard__metric-value">{confirmedBookings}</p>
-            <p className="dashboard__metric-label">Confirmed</p>
+            <p className="dashboard__metric-label">Confirmados</p>
           </div>
         </div>
 
@@ -136,7 +136,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="dashboard__metric-value">{unreadMessages}</p>
-            <p className="dashboard__metric-label">Unread Messages</p>
+            <p className="dashboard__metric-label">Mensagens Não Lidas</p>
           </div>
         </div>
       </div>
@@ -145,7 +145,7 @@ export default function Dashboard() {
       <div className="dashboard__section">
         <h2 className="dashboard__section-title">
           <CalendarCheck size={20} />
-          Bookings for {selectedDate}
+          Agendamentos para {selectedDate}
         </h2>
 
         {loading ? (
@@ -155,7 +155,7 @@ export default function Dashboard() {
         ) : bookings.length === 0 ? (
           <div className="dashboard__empty">
             <CalendarCheck size={40} />
-            <p>No bookings for this date.</p>
+            <p>Nenhum agendamento para esta data.</p>
           </div>
         ) : (
           <div className="dashboard__bookings">
@@ -213,7 +213,7 @@ export default function Dashboard() {
                       </div>
                       {booking.notes && (
                         <div className="dashboard__booking-notes">
-                          <strong>Notes:</strong> {booking.notes}
+                          <strong>Observações:</strong> {booking.notes}
                         </div>
                       )}
 
@@ -226,7 +226,7 @@ export default function Dashboard() {
                               onClick={() => handleStatusChange(booking.id, 'confirmed')}
                             >
                               <CheckCircle size={14} />
-                              Confirm
+                              Confirmar
                             </button>
                             <button
                               className="btn btn-sm"
@@ -234,7 +234,7 @@ export default function Dashboard() {
                               onClick={() => handleStatusChange(booking.id, 'cancelled')}
                             >
                               <XCircle size={14} />
-                              Cancel
+                              Cancelar
                             </button>
                           </>
                         )}
@@ -245,7 +245,7 @@ export default function Dashboard() {
                             onClick={() => handleStatusChange(booking.id, 'completed')}
                           >
                             <CheckCircle size={14} />
-                            Mark Completed
+                            Marcar como Concluído
                           </button>
                         )}
                       </div>

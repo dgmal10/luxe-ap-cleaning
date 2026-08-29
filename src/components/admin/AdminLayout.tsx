@@ -18,10 +18,10 @@ import { useAuth } from '../../hooks/useAuth';
 import './AdminLayout.css';
 
 const NAV_ITEMS = [
-  { label: 'Dashboard', path: '/admin', icon: <LayoutDashboard size={20} />, end: true },
-  { label: 'Messages', path: '/admin/messages', icon: <MessageSquare size={20} /> },
-  { label: 'Schedule', path: '/admin/schedule', icon: <CalendarCog size={20} /> },
-  { label: 'Gallery', path: '/admin/gallery', icon: <ImagePlus size={20} /> },
+  { label: 'Painel', path: '/admin', icon: <LayoutDashboard size={20} />, end: true },
+  { label: 'Mensagens', path: '/admin/messages', icon: <MessageSquare size={20} /> },
+  { label: 'Agenda', path: '/admin/schedule', icon: <CalendarCog size={20} /> },
+  { label: 'Galeria', path: '/admin/gallery', icon: <ImagePlus size={20} /> },
 ];
 
 export default function AdminLayout() {
@@ -51,7 +51,7 @@ export default function AdminLayout() {
           <button
             className="admin__sidebar-close"
             onClick={() => setSidebarOpen(false)}
-            aria-label="Close sidebar"
+            aria-label="Fechar menu lateral"
           >
             <X size={20} />
           </button>
@@ -78,11 +78,11 @@ export default function AdminLayout() {
         <div className="admin__sidebar-footer">
           <Link to="/" className="admin__nav-item" style={{ textDecoration: 'none', marginBottom: '8px' }}>
             <Globe size={18} />
-            <span>View Website</span>
+            <span>Ver Site</span>
           </Link>
           <button className="admin__logout-btn" onClick={handleLogout}>
             <LogOut size={18} />
-            <span>Sign Out</span>
+            <span>Sair</span>
           </button>
         </div>
       </aside>
@@ -94,7 +94,7 @@ export default function AdminLayout() {
           <button
             className="admin__menu-btn"
             onClick={() => setSidebarOpen(true)}
-            aria-label="Open menu"
+            aria-label="Abrir menu"
           >
             <Menu size={22} />
           </button>
@@ -106,7 +106,7 @@ export default function AdminLayout() {
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', padding: '6px 12px' }}
             >
               <Globe size={14} />
-              <span>Public Site</span>
+              <span>Ver Site</span>
             </Link>
             <div className="admin__user">
               <div className="admin__avatar">

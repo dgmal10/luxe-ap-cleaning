@@ -39,11 +39,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code || '';
       if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
-        setError('Invalid email or password.');
+        setError('E-mail ou senha inválidos.');
       } else if (code === 'auth/too-many-requests') {
-        setError('Too many attempts. Please try again later.');
+        setError('Muitas tentativas. Tente novamente mais tarde.');
       } else {
-        setError('Invalid credentials. Please try again.');
+        setError('Credenciais inválidas. Tente novamente.');
       }
       throw err;
     }
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (code === 'auth/user-not-found') {
         return;
       }
-      setError('Could not send reset email. Please try again.');
+      setError('Não foi possível enviar o e-mail de redefinição. Tente novamente.');
       throw err;
     }
   }, []);

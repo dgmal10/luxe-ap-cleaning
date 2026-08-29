@@ -17,13 +17,13 @@ import type { ScheduleConfig } from '../../types';
 import './Schedule.css';
 
 const DAYS: { key: keyof ScheduleConfig['workDays']; label: string; short: string }[] = [
-  { key: 'monday', label: 'Monday', short: 'Mon' },
-  { key: 'tuesday', label: 'Tuesday', short: 'Tue' },
-  { key: 'wednesday', label: 'Wednesday', short: 'Wed' },
-  { key: 'thursday', label: 'Thursday', short: 'Thu' },
-  { key: 'friday', label: 'Friday', short: 'Fri' },
-  { key: 'saturday', label: 'Saturday', short: 'Sat' },
-  { key: 'sunday', label: 'Sunday', short: 'Sun' },
+  { key: 'monday', label: 'Segunda-feira', short: 'Seg' },
+  { key: 'tuesday', label: 'Terça-feira', short: 'Ter' },
+  { key: 'wednesday', label: 'Quarta-feira', short: 'Qua' },
+  { key: 'thursday', label: 'Quinta-feira', short: 'Qui' },
+  { key: 'friday', label: 'Sexta-feira', short: 'Sex' },
+  { key: 'saturday', label: 'Sábado', short: 'Sáb' },
+  { key: 'sunday', label: 'Domingo', short: 'Dom' },
 ];
 
 const SLOT_OPTIONS = [30, 60, 90, 120];
@@ -110,11 +110,11 @@ export default function Schedule() {
       {/* Header */}
       <div className="schedule__header">
         <div>
-          <h1 className="schedule__title">Schedule Settings</h1>
-          <p className="schedule__subtitle">Control your availability and working hours</p>
+          <h1 className="schedule__title">Configurações de Agenda</h1>
+          <p className="schedule__subtitle">Gerencie sua disponibilidade e horários de atendimento</p>
         </div>
         <div className="schedule__header-actions">
-          <button className="schedule__refresh" onClick={fetchConfig} aria-label="Refresh">
+          <button className="schedule__refresh" onClick={fetchConfig} aria-label="Atualizar">
             <RefreshCw size={18} />
           </button>
           <button
@@ -125,17 +125,17 @@ export default function Schedule() {
             {saving ? (
               <>
                 <span className="spinner spinner-sm" />
-                Saving...
+                Salvando...
               </>
             ) : saved ? (
               <>
                 <CheckCircle size={16} />
-                Saved!
+                Salvo!
               </>
             ) : (
               <>
                 <Save size={16} />
-                Save Changes
+                Salvar Alterações
               </>
             )}
           </button>
@@ -147,10 +147,10 @@ export default function Schedule() {
         <div className="schedule__card">
           <h2 className="schedule__card-title">
             <CalendarCog size={20} />
-            Work Days
+            Dias de Atendimento
           </h2>
           <p className="schedule__card-desc">
-            Toggle which days you're available for bookings.
+            Ative ou desative os dias em que você aceita agendamentos.
           </p>
           <div className="schedule__days">
             {DAYS.map(day => (
@@ -173,14 +173,14 @@ export default function Schedule() {
         <div className="schedule__card">
           <h2 className="schedule__card-title">
             <Clock size={20} />
-            Work Hours
+            Horário de Trabalho
           </h2>
           <p className="schedule__card-desc">
-            Set your start time, end time, and appointment duration.
+            Defina o horário de início, término e duração dos agendamentos.
           </p>
           <div className="schedule__hours">
             <div className="schedule__hour-field">
-              <label className="schedule__label">Start Time</label>
+              <label className="schedule__label">Horário Inicial</label>
               <input
                 type="time"
                 className="schedule__input"
@@ -189,7 +189,7 @@ export default function Schedule() {
               />
             </div>
             <div className="schedule__hour-field">
-              <label className="schedule__label">End Time</label>
+              <label className="schedule__label">Horário Final</label>
               <input
                 type="time"
                 className="schedule__input"
@@ -198,7 +198,7 @@ export default function Schedule() {
               />
             </div>
             <div className="schedule__hour-field">
-              <label className="schedule__label">Slot Duration</label>
+              <label className="schedule__label">Duração do Horário</label>
               <select
                 className="schedule__input schedule__select"
                 value={config.slotDuration}
@@ -213,14 +213,14 @@ export default function Schedule() {
 
           {/* Preview */}
           <div className="schedule__preview">
-            <label className="schedule__label">Preview — Available Slots</label>
+            <label className="schedule__label">Prévia — Horários Gerados</label>
             <div className="schedule__slots-preview">
               {previewSlots.length > 0 ? (
                 previewSlots.map(slot => (
                   <span key={slot} className="schedule__slot-chip">{slot}</span>
                 ))
               ) : (
-                <span className="schedule__no-slots">No slots available with current settings</span>
+                <span className="schedule__no-slots">Nenhum horário disponível com a configuração atual</span>
               )}
             </div>
           </div>
@@ -230,10 +230,10 @@ export default function Schedule() {
         <div className="schedule__card schedule__card--full">
           <h2 className="schedule__card-title">
             <CalendarOff size={20} />
-            Blocked Dates
+            Datas Bloqueadas / Folgas
           </h2>
           <p className="schedule__card-desc">
-            Block specific dates for vacations, holidays, or days off.
+            Bloqueie datas específicas para férias, feriados ou indisponibilidade.
           </p>
 
           <div className="schedule__blocked-add">
@@ -250,7 +250,7 @@ export default function Schedule() {
               disabled={!newBlockedDate}
             >
               <Plus size={14} />
-              Block Date
+              Bloquear Data
             </button>
           </div>
 
@@ -260,7 +260,7 @@ export default function Schedule() {
                 <div key={date} className="schedule__blocked-item">
                   <CalendarOff size={14} />
                   <span>
-                    {new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
+                    {new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', {
                       weekday: 'short',
                       month: 'short',
                       day: 'numeric',
@@ -270,7 +270,7 @@ export default function Schedule() {
                   <button
                     className="schedule__blocked-remove"
                     onClick={() => removeBlockedDate(date)}
-                    aria-label="Remove"
+                    aria-label="Remover"
                   >
                     <X size={14} />
                   </button>
@@ -278,7 +278,7 @@ export default function Schedule() {
               ))}
             </div>
           ) : (
-            <p className="schedule__no-blocked">No dates blocked yet.</p>
+            <p className="schedule__no-blocked">Nenhuma data bloqueada ainda.</p>
           )}
         </div>
       </div>

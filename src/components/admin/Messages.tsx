@@ -20,7 +20,7 @@ function formatTimestamp(ts: unknown): string {
   if (!ts) return '';
   const t = ts as { seconds?: number; toDate?: () => Date };
   const date = t.toDate ? t.toDate() : new Date((t.seconds || 0) * 1000);
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString('pt-BR', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -83,9 +83,9 @@ export default function Messages() {
       {/* Header */}
       <div className="messages__header">
         <div>
-          <h1 className="messages__title">Messages</h1>
+          <h1 className="messages__title">Mensagens</h1>
           <p className="messages__count">
-            {unreadCount} unread · {messages.length} total
+            {unreadCount} não lida{unreadCount !== 1 ? 's' : ''} · {messages.length} no total
           </p>
         </div>
         <div className="messages__actions">
@@ -94,16 +94,16 @@ export default function Messages() {
               className={`messages__filter-btn ${filter === 'all' ? 'messages__filter-btn--active' : ''}`}
               onClick={() => setFilter('all')}
             >
-              All
+              Todas
             </button>
             <button
               className={`messages__filter-btn ${filter === 'unread' ? 'messages__filter-btn--active' : ''}`}
               onClick={() => setFilter('unread')}
             >
-              Unread ({unreadCount})
+              Não Lidas ({unreadCount})
             </button>
           </div>
-          <button className="messages__refresh" onClick={fetchMessages} aria-label="Refresh">
+          <button className="messages__refresh" onClick={fetchMessages} aria-label="Atualizar">
             <RefreshCw size={18} />
           </button>
         </div>
@@ -120,7 +120,7 @@ export default function Messages() {
           ) : filtered.length === 0 ? (
             <div className="messages__empty">
               <Inbox size={40} />
-              <p>{filter === 'unread' ? 'No unread messages' : 'No messages yet'}</p>
+              <p>{filter === 'unread' ? 'Nenhuma mensagem não lida' : 'Nenhuma mensagem recebida ainda'}</p>
             </div>
           ) : (
             <div className="messages__list">
@@ -158,7 +158,7 @@ export default function Messages() {
                 <button
                   className="messages__detail-close"
                   onClick={() => setSelected(null)}
-                  aria-label="Close"
+                  aria-label="Fechar"
                 >
                   <X size={20} />
                 </button>
@@ -181,11 +181,11 @@ export default function Messages() {
 
               <div className="messages__detail-actions">
                 <a
-                  href={`mailto:${selected.email}?subject=Re: Your message to LUXE A%26P`}
+                  href={`mailto:${selected.email}?subject=Resposta: Sua mensagem para LUXE A%26P`}
                   className="btn btn-primary btn-sm"
                 >
                   <Mail size={14} />
-                  Reply
+                  Responder
                 </a>
                 <button
                   className="btn btn-sm"
@@ -198,14 +198,14 @@ export default function Messages() {
                   ) : (
                     <Trash2 size={14} />
                   )}
-                  Delete
+                  Excluir
                 </button>
               </div>
             </div>
           ) : (
             <div className="messages__detail-empty">
               <MessageSquare size={40} />
-              <p>Select a message to read</p>
+              <p>Selecione uma mensagem para ler</p>
             </div>
           )}
         </div>

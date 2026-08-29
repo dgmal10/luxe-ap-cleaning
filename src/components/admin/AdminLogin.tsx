@@ -97,7 +97,7 @@ export default function AdminLogin() {
             <KeyRound size={28} />
           </div>
           <h1 className="admin-login__title">LUXE A&P</h1>
-          <p className="admin-login__subtitle">Admin Panel</p>
+          <p className="admin-login__subtitle">Painel Administrativo</p>
         </div>
 
         {/* Forgot Password View */}
@@ -106,10 +106,10 @@ export default function AdminLogin() {
             {resetSent ? (
               <div className="admin-login__reset-success animate-fade-in-up">
                 <CheckCircle size={40} className="admin-login__success-icon" />
-                <h3>Check Your Email</h3>
+                <h3>Verifique seu E-mail</h3>
                 <p>
-                  If an account exists for <strong>{resetEmail}</strong>,
-                  a password reset link has been sent.
+                  Se existir uma conta cadastrada para <strong>{resetEmail}</strong>,
+                  o link de redefinição de senha foi enviado.
                 </p>
                 <button
                   className="btn btn-primary btn-lg"
@@ -121,20 +121,20 @@ export default function AdminLogin() {
                   }}
                 >
                   <ArrowLeft size={16} />
-                  Back to Login
+                  Voltar para o Login
                 </button>
               </div>
             ) : (
               <form onSubmit={handleForgotPassword}>
-                <h3 className="admin-login__forgot-title">Reset Password</h3>
+                <h3 className="admin-login__forgot-title">Redefinir Senha</h3>
                 <p className="admin-login__forgot-desc">
-                  Enter your email and we'll send you a link to reset your password.
+                  Digite seu e-mail para enviarmos um link de redefinição de senha.
                 </p>
 
                 <div className="admin-login__field">
                   <label className="admin-login__label" htmlFor="reset-email">
                     <Mail size={16} />
-                    Email
+                    E-mail
                   </label>
                   <input
                     id="reset-email"
@@ -158,11 +158,11 @@ export default function AdminLogin() {
                   {resetSubmitting ? (
                     <>
                       <span className="spinner spinner-sm" />
-                      Sending...
+                      Enviando...
                     </>
                   ) : (
                     <>
-                      Send Reset Link
+                      Enviar Link de Redefinição
                       <ArrowRight size={16} />
                     </>
                   )}
@@ -177,7 +177,7 @@ export default function AdminLogin() {
                   }}
                 >
                   <ArrowLeft size={14} />
-                  Back to Login
+                  Voltar para o Login
                 </button>
               </form>
             )}
@@ -188,7 +188,7 @@ export default function AdminLogin() {
             <div className="admin-login__field">
               <label className="admin-login__label" htmlFor="login-email">
                 <Mail size={16} />
-                Email
+                E-mail
               </label>
               <input
                 id="login-email"
@@ -206,7 +206,7 @@ export default function AdminLogin() {
             <div className="admin-login__field">
               <label className="admin-login__label" htmlFor="login-password">
                 <Lock size={16} />
-                Password
+                Senha
               </label>
               <div className="admin-login__password-wrap">
                 <input
@@ -223,7 +223,7 @@ export default function AdminLogin() {
                   type="button"
                   className="admin-login__toggle-pw"
                   onClick={() => setShowPassword(v => !v)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? 'Ocultar senha' : 'Exibir senha'}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -234,7 +234,7 @@ export default function AdminLogin() {
 
             {locked && (
               <p className="admin-login__locked">
-                Too many failed attempts. Please wait 60 seconds.
+                Muitas tentativas incorretas. Aguarde 60 segundos.
               </p>
             )}
 
@@ -246,11 +246,11 @@ export default function AdminLogin() {
               {isSubmitting ? (
                 <>
                   <span className="spinner spinner-sm" />
-                  Signing in...
+                  Entrando...
                 </>
               ) : (
                 <>
-                  Sign In
+                  Entrar
                   <ArrowRight size={16} />
                 </>
               )}
@@ -258,7 +258,7 @@ export default function AdminLogin() {
 
             {attempts > 0 && attempts < MAX_ATTEMPTS && (
               <p className="admin-login__attempts">
-                {MAX_ATTEMPTS - attempts} attempt{MAX_ATTEMPTS - attempts > 1 ? 's' : ''} remaining
+                {MAX_ATTEMPTS - attempts} tentativa{MAX_ATTEMPTS - attempts > 1 ? 's' : ''} restante{MAX_ATTEMPTS - attempts > 1 ? 's' : ''}
               </p>
             )}
 
@@ -271,7 +271,7 @@ export default function AdminLogin() {
                 clearError();
               }}
             >
-              Forgot your password?
+              Esqueceu sua senha?
             </button>
 
             <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)', textAlign: 'center' }}>
@@ -281,7 +281,7 @@ export default function AdminLogin() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
               >
                 <Home size={14} />
-                <span>Return to Website</span>
+                <span>Voltar ao Site</span>
               </Link>
             </div>
           </form>

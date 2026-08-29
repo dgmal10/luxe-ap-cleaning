@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Agendamentos: Qualquer visitante pode criar, mas APENAS o admin autenticado pode ler/editar/excluir
+    match /bookings/{bookingId} {
+      allow create: if request.resource.data.name is string 
+                    && request.resource.data.email is string
+                    && request.resource.data.phone is string;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // Mensagens de Contato: Qualquer visitante pode enviar, mas APENAS o admin autenticado pode ler/excluir
+    match /messages/{messageId} {
+      allow create: if request.resource.data.name is string 
+                    && request.resource.data.email is string 
+                    && request.resource.data.message is string;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // Configurações de Agenda: Visitantes podem ler para ver horários disponíveis, apenas admin pode alterar
+    match /config/schedule {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Galeria: Público pode visualizar fotos, apenas admin pode cadastrar/excluir
+    match /gallery/{galleryId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}

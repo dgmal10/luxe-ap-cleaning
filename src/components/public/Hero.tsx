@@ -1,4 +1,4 @@
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useScrollTo } from '../../hooks/useUtils';
 import './Hero.css';
 
@@ -15,12 +15,7 @@ export default function Hero() {
 
       {/* Content */}
       <div className="container hero__content">
-        <div className="hero__badge animate-fade-in-up">
-          <Sparkles size={14} />
-          <span>Premium Cleaning Services</span>
-        </div>
-
-        <h1 className="hero__title animate-fade-in-up delay-1">
+        <h1 className="hero__title animate-fade-in-up">
           LUXE A&amp;P
           <br />
           <span className="hero__title-accent">Cleaning</span>

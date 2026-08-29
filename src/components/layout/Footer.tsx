@@ -31,10 +31,6 @@ export default function Footer() {
                 {item.label}
               </button>
             ))}
-            <Link to="/admin" className="footer__link footer__link--admin">
-              <Lock size={13} className="footer__link-icon" />
-              <span>Admin Portal</span>
-            </Link>
           </div>
 
           <div className="footer__contact">

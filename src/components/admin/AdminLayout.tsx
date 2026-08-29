@@ -100,14 +100,6 @@ export default function AdminLayout() {
           </button>
 
           <div className="admin__topbar-right">
-            <Link
-              to="/"
-              className="btn btn-sm btn-outline"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', padding: '6px 12px' }}
-            >
-              <Globe size={14} />
-              <span>Ver Site</span>
-            </Link>
             <div className="admin__user">
               <div className="admin__avatar">
                 {user?.email?.charAt(0).toUpperCase() || 'A'}

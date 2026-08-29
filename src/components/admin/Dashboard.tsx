@@ -104,9 +104,30 @@ export default function Dashboard() {
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
   const [editingPrice, setEditingPrice] = useState<Record<string, string>>({});
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>(
+    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
+  );
   
   const isInitialLoad = useRef(true);
   const prevBookingsCount = useRef(0);
+
+  const requestNotificationAccess = async () => {
+    if ('Notification' in window) {
+      try {
+        const perm = await Notification.requestPermission();
+        setNotifPermission(perm);
+        if (perm === 'granted') {
+          playNotificationChime();
+          new Notification('🎉 Notificações Ativadas!', {
+            body: 'Você receberá alertas aqui sempre que um novo agendamento for realizado.',
+            icon: '/img/logo.jpg',
+          });
+        }
+      } catch (err) {
+        console.error('Error requesting notification permission:', err);
+      }
+    }
+  };
 
   // Subscribe to real-time bookings
   useEffect(() => {
@@ -117,9 +138,32 @@ export default function Dashboard() {
       if (!isInitialLoad.current && bookings.length > prevBookingsCount.current) {
         const newest = bookings[0];
         const clientName = newest?.name || 'Cliente';
+        
+        // 1. Play audio chime
         playNotificationChime();
+        
+        // 2. Vibrate phone if mobile
+        if (navigator.vibrate) {
+          navigator.vibrate([200, 100, 200, 100, 300]);
+        }
+
+        // 3. Trigger system push notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try {
+            new Notification('🔔 Novo Agendamento LUXE A&P!', {
+              body: `${clientName} • ${newest.service} para ${newest.date} às ${newest.time}`,
+              icon: '/img/logo.jpg',
+              badge: '/img/logo.jpg',
+              tag: `booking-${newest.id}`,
+            });
+          } catch (e) {
+            console.info('Notification failed:', e);
+          }
+        }
+
+        // 4. In-app toast banner
         setNotification(`🔔 Novo agendamento recebido de ${clientName}!`);
-        setTimeout(() => setNotification(null), 6000);
+        setTimeout(() => setNotification(null), 7000);
       }
 
       prevBookingsCount.current = bookings.length;
@@ -212,6 +256,22 @@ export default function Dashboard() {
           <Bell size={18} className="dashboard__toast-icon" />
           <span>{notification}</span>
           <button className="dashboard__toast-close" onClick={() => setNotification(null)}>✕</button>
+        </div>
+      )}
+
+      {/* Push Notification Enable Banner */}
+      {notifPermission === 'default' && (
+        <div className="dashboard__notif-banner animate-fade-in">
+          <div className="dashboard__notif-banner-left">
+            <Bell size={20} className="dashboard__notif-banner-icon" />
+            <div>
+              <strong>Ativar Alertas no Celular e Computador</strong>
+              <p>Receba notificações com som e vibração no celular/PC sempre que um novo cliente agendar.</p>
+            </div>
+          </div>
+          <button className="btn btn-sm btn-primary" onClick={requestNotificationAccess}>
+            Ativar Notificações
+          </button>
         </div>
       )}
 

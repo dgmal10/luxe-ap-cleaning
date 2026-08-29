@@ -1,0 +1,307 @@
+/* ============================================================
+   Schedule — Work days, hours, blocked dates
+   ============================================================ */
+
+.schedule__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+  flex-wrap: wrap;
+}
+
+.schedule__title {
+  font-size: var(--text-3xl);
+  color: var(--color-white);
+  margin-bottom: var(--space-1);
+}
+
+.schedule__subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-gray-500);
+}
+
+.schedule__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.schedule__refresh {
+  padding: var(--space-2);
+  color: var(--color-gray-400);
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast);
+}
+
+.schedule__refresh:hover {
+  color: var(--color-gold);
+  background: var(--color-gold-muted);
+}
+
+.btn--saved {
+  background: var(--color-success) !important;
+}
+
+/* ---------- Grid ---------- */
+.schedule__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-6);
+}
+
+.schedule__card {
+  background: var(--surface-secondary);
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.schedule__card--full {
+  grid-column: 1 / -1;
+}
+
+.schedule__card-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-lg);
+  color: var(--color-white);
+  margin-bottom: var(--space-2);
+}
+
+.schedule__card-title svg {
+  color: var(--color-gold);
+}
+
+.schedule__card-desc {
+  font-size: var(--text-sm);
+  color: var(--color-gray-500);
+  margin-bottom: var(--space-6);
+}
+
+/* ---------- Work Days ---------- */
+.schedule__days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.schedule__day {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-gray-900);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--color-gray-500);
+  transition: all var(--duration-fast);
+  text-align: left;
+}
+
+.schedule__day:hover {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.schedule__day--active {
+  color: var(--color-white);
+  border-color: rgba(196, 162, 101, 0.2);
+}
+
+.schedule__day-short {
+  display: none;
+  font-weight: 600;
+  font-size: var(--text-sm);
+  min-width: 40px;
+}
+
+.schedule__day-full {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  flex: 1;
+}
+
+/* Toggle switch */
+.schedule__toggle {
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--color-gray-700);
+  position: relative;
+  transition: background var(--duration-fast);
+  flex-shrink: 0;
+}
+
+.schedule__toggle--on {
+  background: var(--color-gold);
+}
+
+.schedule__toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: var(--color-white);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.schedule__toggle--on .schedule__toggle-knob {
+  transform: translateX(18px);
+}
+
+/* ---------- Work Hours ---------- */
+.schedule__hours {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.schedule__hour-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.schedule__label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.schedule__input {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-gray-900);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  color: var(--color-white);
+  font-size: var(--text-sm);
+}
+
+.schedule__input:focus {
+  outline: none;
+  border-color: var(--color-gold);
+}
+
+.schedule__select {
+  cursor: pointer;
+}
+
+.schedule__select option {
+  background: var(--color-gray-900);
+  color: var(--color-white);
+}
+
+/* Preview */
+.schedule__preview {
+  padding-top: var(--space-4);
+  border-top: var(--border-subtle);
+}
+
+.schedule__preview .schedule__label {
+  margin-bottom: var(--space-3);
+  display: block;
+}
+
+.schedule__slots-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.schedule__slot-chip {
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-gold-muted);
+  color: var(--color-gold);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.schedule__no-slots {
+  font-size: var(--text-sm);
+  color: var(--color-gray-600);
+}
+
+/* ---------- Blocked Dates ---------- */
+.schedule__blocked-add {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.schedule__blocked-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.schedule__blocked-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: rgba(231, 76, 60, 0.08);
+  color: var(--color-gray-300);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  border: 1px solid rgba(231, 76, 60, 0.15);
+}
+
+.schedule__blocked-item svg {
+  color: var(--color-error);
+}
+
+.schedule__blocked-remove {
+  padding: 2px;
+  color: var(--color-gray-500);
+  border-radius: var(--radius-full);
+  transition: all var(--duration-fast);
+}
+
+.schedule__blocked-remove:hover {
+  color: var(--color-error);
+  background: rgba(231, 76, 60, 0.15);
+}
+
+.schedule__no-blocked {
+  font-size: var(--text-sm);
+  color: var(--color-gray-600);
+}
+
+/* ---------- Loading ---------- */
+.schedule__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .schedule__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule__hours {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule__header {
+    flex-direction: column;
+  }
+
+  .schedule__day-full {
+    display: none;
+  }
+
+  .schedule__day-short {
+    display: block;
+  }
+}

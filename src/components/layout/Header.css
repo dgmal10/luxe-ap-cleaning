@@ -1,0 +1,199 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-sticky);
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  transition: all var(--duration-normal) var(--ease-out);
+  background: transparent;
+}
+
+.header--scrolled {
+  background: rgba(10, 10, 10, 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 1px 20px rgba(0, 0, 0, 0.3);
+}
+
+.header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+}
+
+/* Logo */
+.header__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  transition: opacity var(--duration-fast);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.header__logo:hover {
+  opacity: 0.8;
+}
+
+.header__logo-img {
+  height: 46px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Desktop nav */
+.header__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.header__link {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-gray-300);
+  transition: color var(--duration-fast);
+  background: none;
+  border: none;
+  cursor: pointer;
+  position: relative;
+}
+
+.header__link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 1px;
+  background: var(--color-gold);
+  transition: width var(--duration-normal) var(--ease-out);
+}
+
+.header__link:hover {
+  color: var(--color-white);
+}
+
+.header__link:hover::after {
+  width: 70%;
+}
+
+.header__link--cta {
+  background: var(--color-gold);
+  color: var(--color-black) !important;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+  padding: var(--space-2) var(--space-5);
+  margin-left: var(--space-4);
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.header__link--cta::after {
+  display: none;
+}
+
+.header__link--cta:hover {
+  background: var(--color-gold-light);
+  box-shadow: var(--shadow-gold);
+  transform: translateY(-1px);
+}
+
+/* Mobile toggle */
+.header__toggle {
+  display: none;
+  padding: var(--space-2);
+  color: var(--color-white);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* Mobile drawer */
+.header__drawer {
+  position: fixed;
+  top: var(--header-height);
+  right: 0;
+  bottom: 0;
+  width: 280px;
+  background: rgba(10, 10, 10, 0.97);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  transform: translateX(100%);
+  transition: transform var(--duration-normal) var(--ease-out);
+  z-index: var(--z-overlay);
+  padding: var(--space-8) var(--space-6);
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.header__drawer--open {
+  transform: translateX(0);
+}
+
+.header__drawer-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.header__drawer-link {
+  padding: var(--space-4) var(--space-4);
+  font-size: var(--text-lg);
+  font-weight: 500;
+  color: var(--color-gray-300);
+  text-align: left;
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast);
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  animation: fadeInUp var(--duration-normal) var(--ease-out) forwards;
+}
+
+.header__drawer--open .header__drawer-link {
+  opacity: 0;
+  animation: fadeInUp var(--duration-normal) var(--ease-out) forwards;
+}
+
+.header__drawer-link:hover {
+  color: var(--color-white);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Backdrop */
+.header__backdrop {
+  position: fixed;
+  inset: 0;
+  top: var(--header-height);
+  background: rgba(0, 0, 0, 0.5);
+  z-index: calc(var(--z-overlay) - 1);
+  animation: fadeIn var(--duration-fast) var(--ease-out);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header__nav {
+    display: none;
+  }
+
+  .header__toggle {
+    display: flex;
+  }
+
+  .header__logo-img {
+    height: 38px;
+  }
+}

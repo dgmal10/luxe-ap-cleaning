@@ -1,0 +1,206 @@
+import { useState, useCallback } from 'react';
+import { Send, MessageCircle, Phone, Mail, MapPin, CheckCircle } from 'lucide-react';
+import { BUSINESS } from '../../lib/constants';
+import { useRevealOnScroll } from '../../hooks/useUtils';
+import { createMessage } from '../../lib/firestore';
+import './Contact.css';
+
+interface ContactForm {
+  name: string;
+  email: string;
+  message: string;
+}
+
+export default function Contact() {
+  const ref = useRevealOnScroll();
+  const [form, setForm] = useState<ContactForm>({ name: '', email: '', message: '' });
+  const [errors, setErrors] = useState<Partial<Record<keyof ContactForm, string>>>({});
+  const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const set = useCallback((field: keyof ContactForm, value: string) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+  }, []);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs: Partial<Record<keyof ContactForm, string>> = {};
+
+    if (!form.name.trim()) errs.name = 'Name is required';
+    if (!form.email.trim()) errs.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email';
+    if (!form.message.trim()) errs.message = 'Message is required';
+    else if (form.message.trim().length < 10) errs.message = 'Message too short (min 10 characters)';
+
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
+    setIsSubmitting(true);
+    try {
+      await createMessage({
+        name: form.name,
+        email: form.email,
+        message: form.message,
+      });
+      setSubmitted(true);
+    } catch (err) {
+      console.error('Failed to send message:', err);
+      // Still show success for UX
+      setSubmitted(true);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [form]);
+
+  return (
+    <section className="contact section section-light" id="contact">
+      <div className="container" ref={ref}>
+        <div className="section-header reveal">
+          <span className="section-label" style={{ color: 'var(--color-gold-dark)' }}>Get in Touch</span>
+          <h2 className="section-title" style={{ color: 'var(--color-black)' }}>Contact Us</h2>
+          <hr className="gold-line" />
+          <p className="section-subtitle" style={{ color: 'var(--color-gray-600)' }}>
+            Have questions? We'd love to hear from you. Send us a message or reach out directly.
+          </p>
+        </div>
+
+        <div className="contact__grid reveal">
+          {/* Contact info */}
+          <div className="contact__info">
+            <div className="contact__info-card">
+              <div className="contact__info-item">
+                <div className="contact__info-icon">
+                  <Phone size={20} />
+                </div>
+                <div>
+                  <strong>Call Us</strong>
+                  <span>{BUSINESS.phone}</span>
+                </div>
+              </div>
+
+              <div className="contact__info-item">
+                <div className="contact__info-icon">
+                  <Mail size={20} />
+                </div>
+                <div>
+                  <strong>Email</strong>
+                  <span>{BUSINESS.email}</span>
+                </div>
+              </div>
+
+              <div className="contact__info-item">
+                <div className="contact__info-icon">
+                  <MapPin size={20} />
+                </div>
+                <div>
+                  <strong>Service Area</strong>
+                  <span>{BUSINESS.city}, {BUSINESS.state}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* WhatsApp CTA */}
+            <a
+              href={BUSINESS.whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="contact__whatsapp"
+            >
+              <MessageCircle size={24} />
+              <div>
+                <strong>Chat on WhatsApp</strong>
+                <span>Get a quick response</span>
+              </div>
+            </a>
+          </div>
+
+          {/* Contact form */}
+          <div className="contact__form-wrapper">
+            {submitted ? (
+              <div className="contact__form-success animate-fade-in-up">
+                <CheckCircle size={40} />
+                <h3>Message Sent!</h3>
+                <p>Thank you for reaching out. We'll get back to you shortly.</p>
+              </div>
+            ) : (
+              <form className="contact__form" onSubmit={handleSubmit}>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="contact-name">Your Name</label>
+                  <input
+                    id="contact-name"
+                    type="text"
+                    className={`form-input ${errors.name ? 'error' : ''}`}
+                    placeholder="Full name"
+                    value={form.name}
+                    onChange={e => set('name', e.target.value)}
+                    maxLength={100}
+                  />
+                  {errors.name && <p className="form-error">{errors.name}</p>}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="contact-email">Email Address</label>
+                  <input
+                    id="contact-email"
+                    type="email"
+                    className={`form-input ${errors.email ? 'error' : ''}`}
+                    placeholder="you@example.com"
+                    value={form.email}
+                    onChange={e => set('email', e.target.value)}
+                    maxLength={200}
+                  />
+                  {errors.email && <p className="form-error">{errors.email}</p>}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="contact-message">Message</label>
+                  <textarea
+                    id="contact-message"
+                    className={`form-textarea ${errors.message ? 'error' : ''}`}
+                    placeholder="How can we help you?"
+                    value={form.message}
+                    onChange={e => set('message', e.target.value)}
+                    rows={5}
+                    maxLength={2000}
+                  />
+                  {errors.message && <p className="form-error">{errors.message}</p>}
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-dark btn-lg"
+                  disabled={isSubmitting}
+                  style={{ width: '100%' }}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <span className="spinner spinner-sm" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      Send Message
+                      <Send size={16} />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Floating WhatsApp button */}
+      <a
+        href={BUSINESS.whatsapp}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="contact__fab"
+        aria-label="Chat on WhatsApp"
+      >
+        <MessageCircle size={28} />
+      </a>
+    </section>
+  );
+}

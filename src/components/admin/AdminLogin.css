@@ -1,0 +1,265 @@
+/* ============================================================
+   Admin Login — Premium dark login page
+   ============================================================ */
+
+.admin-login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-primary);
+  padding: var(--space-6);
+}
+
+/* ---------- Decorative Background ---------- */
+.admin-login__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.admin-login__bg-gradient {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(196, 162, 101, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(196, 162, 101, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(196, 162, 101, 0.04) 0%, transparent 40%);
+}
+
+.admin-login__bg-pattern {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* ---------- Card ---------- */
+.admin-login__card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface-secondary);
+  border: var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: var(--space-10);
+  position: relative;
+  z-index: 1;
+  box-shadow: var(--shadow-xl);
+}
+
+/* ---------- Brand ---------- */
+.admin-login__brand {
+  text-align: center;
+  margin-bottom: var(--space-8);
+}
+
+.admin-login__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dark));
+  color: var(--color-black);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+}
+
+.admin-login__title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  color: var(--color-white);
+  letter-spacing: var(--tracking-wider);
+  margin-bottom: var(--space-1);
+}
+
+.admin-login__subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+}
+
+/* ---------- Form ---------- */
+.admin-login__form,
+.admin-login__forgot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.admin-login__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.admin-login__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-gray-400);
+}
+
+.admin-login__input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+  background: var(--color-gray-900);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  color: var(--color-white);
+  transition: all var(--duration-fast);
+}
+
+.admin-login__input:focus {
+  outline: none;
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px var(--color-gold-muted);
+}
+
+.admin-login__input::placeholder {
+  color: var(--color-gray-600);
+}
+
+/* Password toggle */
+.admin-login__password-wrap {
+  position: relative;
+}
+
+.admin-login__password-wrap .admin-login__input {
+  padding-right: 3rem;
+}
+
+.admin-login__toggle-pw {
+  position: absolute;
+  right: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-gray-500);
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-fast);
+}
+
+.admin-login__toggle-pw:hover {
+  color: var(--color-gold);
+}
+
+/* ---------- Button ---------- */
+.admin-login__btn {
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+/* ---------- Error / Status ---------- */
+.admin-login__error {
+  font-size: var(--text-sm);
+  color: var(--color-error);
+  background: rgba(231, 76, 60, 0.1);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(231, 76, 60, 0.2);
+  text-align: center;
+  animation: fadeIn var(--duration-fast) ease;
+}
+
+.admin-login__locked {
+  font-size: var(--text-sm);
+  color: var(--color-warning);
+  background: rgba(243, 156, 18, 0.1);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(243, 156, 18, 0.2);
+  text-align: center;
+  animation: fadeIn var(--duration-fast) ease;
+}
+
+.admin-login__attempts {
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+  text-align: center;
+}
+
+/* ---------- Forgot password link ---------- */
+.admin-login__link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-gold);
+  transition: color var(--duration-fast);
+  margin-top: var(--space-2);
+}
+
+.admin-login__link:hover {
+  color: var(--color-gold-light);
+  text-decoration: underline;
+}
+
+/* ---------- Forgot password view ---------- */
+.admin-login__forgot-title {
+  font-size: var(--text-xl);
+  color: var(--color-white);
+  margin-bottom: var(--space-1);
+}
+
+.admin-login__forgot-desc {
+  font-size: var(--text-sm);
+  color: var(--color-gray-400);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-4);
+}
+
+/* ---------- Reset success ---------- */
+.admin-login__reset-success {
+  text-align: center;
+  padding: var(--space-4) 0;
+}
+
+.admin-login__success-icon {
+  color: var(--color-success);
+  margin-bottom: var(--space-4);
+}
+
+.admin-login__reset-success h3 {
+  color: var(--color-white);
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-3);
+}
+
+.admin-login__reset-success p {
+  color: var(--color-gray-400);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+}
+
+.admin-login__reset-success strong {
+  color: var(--color-gold);
+}
+
+/* ---------- Loading ---------- */
+.admin-login__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-gold);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 480px) {
+  .admin-login {
+    padding: var(--space-4);
+  }
+
+  .admin-login__card {
+    padding: var(--space-6);
+  }
+}

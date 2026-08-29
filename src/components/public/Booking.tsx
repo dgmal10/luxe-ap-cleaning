@@ -17,7 +17,7 @@ import {
 import { SERVICES, BUSINESS, CLEANING_EXTRAS, calculateEstimatedPrice } from '../../lib/constants';
 import { TIME_SLOTS as FALLBACK_TIME_SLOTS } from '../../lib/constants';
 import { useRevealOnScroll } from '../../hooks/useUtils';
-import { createBooking } from '../../lib/firestore';
+import { createBooking, getBookingsByDate } from '../../lib/firestore';
 import { getScheduleConfig, generateTimeSlots } from '../../lib/firestore';
 import { sendBookingEmail } from '../../lib/email';
 import './Booking.css';
@@ -60,6 +60,8 @@ export default function Booking() {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeSlots, setTimeSlots] = useState<string[]>(FALLBACK_TIME_SLOTS);
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   // Load dynamic time slots from admin schedule config
   useEffect(() => {
@@ -70,6 +72,29 @@ export default function Booking() {
       })
       .catch(() => { /* keep fallback slots */ });
   }, []);
+
+  // Check booked slots whenever date changes to prevent double-booking
+  useEffect(() => {
+    if (!form.date) {
+      setBookedSlots([]);
+      return;
+    }
+    setLoadingSlots(true);
+    getBookingsByDate(form.date)
+      .then(bookings => {
+        const taken = bookings.map(b => b.time);
+        setBookedSlots(taken);
+        if (form.time && taken.includes(form.time)) {
+          set('time', '');
+        }
+      })
+      .catch(err => {
+        console.error('Error checking booked slots:', err);
+      })
+      .finally(() => {
+        setLoadingSlots(false);
+      });
+  }, [form.date]);
 
   const set = useCallback((field: keyof FormData, value: unknown) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -103,6 +128,9 @@ export default function Booking() {
       if (form.date && new Date(form.date) < new Date(new Date().toDateString())) {
         errs.date = 'Please select a future date';
       }
+      if (form.date && form.time && bookedSlots.includes(form.time)) {
+        errs.time = 'This time slot is already reserved. Please select another time.';
+      }
     }
     if (step === 3) {
       if (!form.name.trim()) errs.name = 'Name is required';
@@ -115,7 +143,7 @@ export default function Booking() {
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
-  }, [step, form]);
+  }, [step, form, bookedSlots]);
 
   const next = useCallback(() => {
     if (validateStep()) setStep(s => Math.min(s + 1, 3) as Step);
@@ -129,6 +157,19 @@ export default function Booking() {
     if (!validateStep()) return;
     setIsSubmitting(true);
     try {
+      // Re-verify slot availability immediately before creating to prevent race conditions
+      const currentBookings = await getBookingsByDate(form.date);
+      const isTaken = currentBookings.some(b => b.time === form.time);
+      if (isTaken) {
+        setErrors(prev => ({
+          ...prev,
+          time: 'This time slot was just booked by another customer. Please choose a different time.'
+        }));
+        setStep(2);
+        setIsSubmitting(false);
+        return;
+      }
+
       const serviceObj = SERVICES.find(s => s.id === form.service);
       const serviceName = serviceObj?.name || form.service;
       const extraNames = form.extras.map(eId => CLEANING_EXTRAS.find(e => e.id === eId)?.name || eId);
@@ -372,18 +413,28 @@ export default function Booking() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" style={{ color: 'var(--color-gray-400)' }}>Select Arrival Time Slot</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                    <label className="form-label" style={{ color: 'var(--color-gray-400)', margin: 0 }}>Select Arrival Time Slot</label>
+                    {loadingSlots && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gold)' }}>Checking availability...</span>}
+                  </div>
                   <div className="booking__time-grid">
-                    {timeSlots.map(slot => (
-                      <button
-                        key={slot}
-                        type="button"
-                        className={`booking__time-slot ${form.time === slot ? 'booking__time-slot--selected' : ''}`}
-                        onClick={() => set('time', slot)}
-                      >
-                        {slot}
-                      </button>
-                    ))}
+                    {timeSlots.map(slot => {
+                      const isBooked = bookedSlots.includes(slot);
+                      const isSelected = form.time === slot;
+                      return (
+                        <button
+                          key={slot}
+                          type="button"
+                          disabled={isBooked}
+                          className={`booking__time-slot ${isSelected ? 'booking__time-slot--selected' : ''} ${isBooked ? 'booking__time-slot--booked' : ''}`}
+                          onClick={() => !isBooked && set('time', slot)}
+                          title={isBooked ? 'This slot has already been reserved' : slot}
+                        >
+                          <span>{slot}</span>
+                          {isBooked && <span className="booking__time-slot-tag">Reserved</span>}
+                        </button>
+                      );
+                    })}
                   </div>
                   {errors.time && <p className="form-error">{errors.time}</p>}
                 </div>

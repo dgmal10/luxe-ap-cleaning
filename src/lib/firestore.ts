@@ -178,20 +178,26 @@ export async function createBooking(data: Omit<Booking, 'id' | 'createdAt' | 'st
   return ref.id;
 }
 
-/** Get all bookings for a specific date (YYYY-MM-DD) */
+/** Get all active bookings for a specific date (YYYY-MM-DD) */
 export async function getBookingsByDate(date: string): Promise<Booking[]> {
   if (!isFirebaseConfigured) {
     const list = getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS);
-    return list.filter(b => b.date === date);
+    return list.filter(b => b.date === date && b.status !== 'cancelled');
   }
 
-  const q = query(
-    collection(db, 'bookings'),
-    where('date', '==', date),
-    orderBy('time', 'asc')
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }) as Booking);
+  try {
+    const q = query(
+      collection(db, 'bookings'),
+      where('date', '==', date)
+    );
+    const snap = await getDocs(q);
+    return snap.docs
+      .map(d => ({ id: d.id, ...d.data() }) as Booking)
+      .filter(b => b.status !== 'cancelled');
+  } catch (err) {
+    console.error('Error fetching bookings by date:', err);
+    return [];
+  }
 }
 
 /** Get all bookings */

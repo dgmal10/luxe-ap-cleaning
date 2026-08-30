@@ -13,6 +13,7 @@ import {
   Check,
   DollarSign,
   Sparkles,
+  Calendar,
 } from 'lucide-react';
 import { SERVICES, BUSINESS, CLEANING_EXTRAS, BASE_PRICING } from '../../lib/constants';
 import { TIME_SLOTS as FALLBACK_TIME_SLOTS } from '../../lib/constants';
@@ -447,15 +448,18 @@ export default function Booking() {
               <h3 className="booking__step-title">Choose Preferred Date &amp; Time</h3>
               <div className="booking__datetime">
                 <div className="form-group">
-                  <label className="form-label" htmlFor="booking-date">Select Date</label>
-                  <input
-                    id="booking-date"
-                    type="date"
-                    className={`form-input form-input-dark ${errors.date ? 'error' : ''}`}
-                    value={form.date}
-                    min={minDate}
-                    onChange={e => set('date', e.target.value)}
-                  />
+                  <label className="form-label" htmlFor="booking-date" style={{ color: 'var(--color-gray-300)' }}>Select Date</label>
+                  <div className="booking__date-wrapper">
+                    <Calendar size={18} className="booking__date-icon" />
+                    <input
+                      id="booking-date"
+                      type="date"
+                      className={`form-input form-input-dark booking__date-input ${errors.date ? 'error' : ''}`}
+                      value={form.date}
+                      min={minDate}
+                      onChange={e => set('date', e.target.value)}
+                    />
+                  </div>
                   {errors.date && <p className="form-error">{errors.date}</p>}
                 </div>
 

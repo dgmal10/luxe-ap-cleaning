@@ -364,12 +364,23 @@
   gap: var(--space-6);
 }
 
+.booking__date-badge {
+  font-size: var(--text-xs);
+  color: var(--color-gold);
+  background: var(--color-gold-muted);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: var(--radius-full);
+  padding: 2px 10px;
+  font-weight: 600;
+}
+
 .booking__date-wrapper {
   position: relative;
   display: flex;
   align-items: center;
   width: 100%;
   box-sizing: border-box;
+  cursor: pointer;
 }
 
 .booking__date-icon {
@@ -377,7 +388,7 @@
   left: 14px;
   color: var(--color-gold);
   pointer-events: none;
-  z-index: 2;
+  z-index: 3;
 }
 
 .booking__date-input {
@@ -388,7 +399,7 @@
   padding-right: 14px !important;
   height: 52px !important;
   min-height: 52px !important;
-  color: #ffffff !important;
+  color: transparent !important;
   color-scheme: dark !important;
   -webkit-appearance: none !important;
   appearance: none !important;
@@ -399,6 +410,9 @@
   border-radius: var(--radius-md) !important;
   text-align: left !important;
   line-height: normal !important;
+  cursor: pointer !important;
+  position: relative;
+  z-index: 1;
 }
 
 .booking__date-input:focus {
@@ -406,35 +420,47 @@
   box-shadow: 0 0 0 3px var(--color-gold-muted) !important;
 }
 
-.booking__date-input::-webkit-date-and-time-value {
-  text-align: left !important;
-  display: block !important;
-  color: #ffffff !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
 .booking__date-input::-webkit-calendar-picker-indicator {
-  filter: invert(1) brightness(1.2) !important;
-  cursor: pointer !important;
-  opacity: 0.9 !important;
-  padding: 4px !important;
-  margin-right: -4px !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 4;
 }
 
-.booking__date-input::-webkit-datetime-edit,
-.booking__date-input::-webkit-datetime-edit-fields-wrapper {
-  color: #ffffff !important;
+.booking__date-label-overlay {
+  position: absolute;
+  left: 44px;
+  right: 16px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 2;
 }
 
-.booking__date-input::-webkit-datetime-edit-text {
-  color: rgba(255, 255, 255, 0.4) !important;
+.booking__date-text-primary {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-white);
+  letter-spacing: 0.2px;
 }
 
-.booking__date-input::-webkit-datetime-edit-month-field,
-.booking__date-input::-webkit-datetime-edit-day-field,
-.booking__date-input::-webkit-datetime-edit-year-field {
-  color: #ffffff !important;
+.booking__date-tap-hint {
+  font-size: var(--text-xs);
+  color: var(--color-gold);
+  font-weight: 500;
+  background: rgba(212, 175, 55, 0.1);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(212, 175, 55, 0.2);
 }
 
 .booking__time-grid {

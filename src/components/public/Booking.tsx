@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Clock,
   User,
@@ -40,12 +40,18 @@ interface FormData {
   notes: string;
 }
 
+const getTomorrowString = () => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.toISOString().split('T')[0];
+};
+
 const INITIAL: FormData = {
   service: 'deep',
   bedrooms: 2,
   bathrooms: 2,
   extras: [],
-  date: '',
+  date: getTomorrowString(),
   time: '',
   name: '',
   email: '',
@@ -56,6 +62,7 @@ const INITIAL: FormData = {
 
 export default function Booking() {
   const ref = useRevealOnScroll();
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>(1);
   const [form, setForm] = useState<FormData>(INITIAL);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
@@ -443,60 +450,106 @@ export default function Booking() {
           )}
 
           {/* Step 2: Date & Time */}
-          {step === 2 && (
-            <div className="booking__step">
-              <h3 className="booking__step-title">Choose Preferred Date &amp; Time</h3>
-              <div className="booking__datetime">
-                <div className="form-group">
-                  <label className="form-label" htmlFor="booking-date" style={{ color: 'var(--color-gray-300)' }}>Select Date</label>
-                  <div className="booking__date-wrapper">
-                    <Calendar size={18} className="booking__date-icon" />
-                    <input
-                      id="booking-date"
-                      type="date"
-                      className={`form-input form-input-dark booking__date-input ${errors.date ? 'error' : ''}`}
-                      value={form.date}
-                      min={minDate}
-                      onChange={e => set('date', e.target.value)}
-                    />
-                  </div>
-                  {errors.date && <p className="form-error">{errors.date}</p>}
-                </div>
+          {step === 2 && (() => {
+            const formattedDate = form.date
+              ? (() => {
+                  try {
+                    const [y, m, d] = form.date.split('-').map(Number);
+                    const dateObj = new Date(y, m - 1, d);
+                    return dateObj.toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    });
+                  } catch {
+                    return form.date;
+                  }
+                })()
+              : 'Select preferred date...';
 
-                <div className="form-group">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
-                    <label className="form-label" style={{ color: 'var(--color-gray-400)', margin: 0 }}>Select Arrival Time Slot</label>
-                    {loadingSlots && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gold)' }}>Checking availability...</span>}
+            return (
+              <div className="booking__step">
+                <h3 className="booking__step-title">Choose Preferred Date &amp; Time</h3>
+                <div className="booking__datetime">
+                  <div className="form-group">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                      <label className="form-label" htmlFor="booking-date" style={{ color: 'var(--color-gray-300)', margin: 0 }}>
+                        Select Cleaning Date
+                      </label>
+                      {form.date && (
+                        <span className="booking__date-badge">
+                          {formattedDate}
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      className="booking__date-wrapper"
+                      onClick={() => {
+                        try {
+                          dateInputRef.current?.showPicker?.();
+                        } catch {
+                          dateInputRef.current?.focus();
+                        }
+                      }}
+                    >
+                      <Calendar size={18} className="booking__date-icon" />
+                      <input
+                        ref={dateInputRef}
+                        id="booking-date"
+                        type="date"
+                        className={`form-input form-input-dark booking__date-input ${errors.date ? 'error' : ''}`}
+                        value={form.date}
+                        min={minDate}
+                        onChange={e => set('date', e.target.value)}
+                      />
+                      <div className="booking__date-label-overlay">
+                        <span className="booking__date-text-primary">
+                          {formattedDate}
+                        </span>
+                        <span className="booking__date-tap-hint">
+                          Change ▾
+                        </span>
+                      </div>
+                    </div>
+                    {errors.date && <p className="form-error">{errors.date}</p>}
                   </div>
-                  <div className="booking__time-grid">
-                    {timeSlots.map(slot => {
-                      const isBooked = bookedSlots.some(b => normalizeTimeSlot(b) === normalizeTimeSlot(slot));
-                      const isSelected = !isBooked && form.time && normalizeTimeSlot(form.time) === normalizeTimeSlot(slot);
-                      return (
-                        <button
-                          key={slot}
-                          type="button"
-                          disabled={isBooked}
-                          aria-disabled={isBooked}
-                          className={`booking__time-slot ${isSelected ? 'booking__time-slot--selected' : ''} ${isBooked ? 'booking__time-slot--booked' : ''}`}
-                          onClick={() => {
-                            if (!isBooked) {
-                              set('time', slot);
-                            }
-                          }}
-                          title={isBooked ? 'This slot has already been reserved' : slot}
-                        >
-                          <span>{slot}</span>
-                          {isBooked && <span className="booking__time-slot-tag">Reserved</span>}
-                        </button>
-                      );
-                    })}
+
+                  <div className="form-group">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                      <label className="form-label" style={{ color: 'var(--color-gray-400)', margin: 0 }}>Select Arrival Time Slot</label>
+                      {loadingSlots && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gold)' }}>Checking availability...</span>}
+                    </div>
+                    <div className="booking__time-grid">
+                      {timeSlots.map(slot => {
+                        const isBooked = bookedSlots.some(b => normalizeTimeSlot(b) === normalizeTimeSlot(slot));
+                        const isSelected = !isBooked && form.time && normalizeTimeSlot(form.time) === normalizeTimeSlot(slot);
+                        return (
+                          <button
+                            key={slot}
+                            type="button"
+                            disabled={isBooked}
+                            aria-disabled={isBooked}
+                            className={`booking__time-slot ${isSelected ? 'booking__time-slot--selected' : ''} ${isBooked ? 'booking__time-slot--booked' : ''}`}
+                            onClick={() => {
+                              if (!isBooked) {
+                                set('time', slot);
+                              }
+                            }}
+                            title={isBooked ? 'This slot has already been reserved' : slot}
+                          >
+                            <span>{slot}</span>
+                            {isBooked && <span className="booking__time-slot-tag">Reserved</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {errors.time && <p className="form-error">{errors.time}</p>}
                   </div>
-                  {errors.time && <p className="form-error">{errors.time}</p>}
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Step 3: Personal info */}
           {step === 3 && (

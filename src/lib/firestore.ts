@@ -10,7 +10,6 @@ import {
   updateDoc,
   deleteDoc,
   query,
-  where,
   orderBy,
   setDoc,
   Timestamp,
@@ -163,12 +162,23 @@ function setLocal<T>(key: string, data: T) {
 export function normalizeDate(date: string): string {
   if (!date) return '';
   const trimmed = date.trim();
+  if (trimmed.includes('T')) {
+    return trimmed.split('T')[0];
+  }
   const parts = trimmed.split('-');
   if (parts.length === 3) {
     const y = parts[0].padStart(4, '0');
     const m = parts[1].padStart(2, '0');
     const d = parts[2].padStart(2, '0');
     return `${y}-${m}-${d}`;
+  }
+  if (trimmed.includes('/')) {
+    const slashParts = trimmed.split('/');
+    if (slashParts.length === 3) {
+      if (slashParts[0].length === 4) {
+        return `${slashParts[0]}-${slashParts[1].padStart(2, '0')}-${slashParts[2].padStart(2, '0')}`;
+      }
+    }
   }
   return trimmed;
 }
@@ -197,13 +207,13 @@ export function getLocalTomorrowString(): string {
 }
 
 /**
- * Normalize any time string to canonical format e.g. "9:00 AM", "10:00 AM", "1:00 PM"
- * Handles "09:00 AM", "9:00AM", "09:00", "13:00", "1:00 PM", "01:00 PM", etc.
+ * Normalize any time string to canonical format e.g. "8:00 AM", "10:00 AM", "1:00 PM"
+ * Handles "09:00 AM", "9:00AM", "09:00", "13:00", "1:00 PM", "01:00 PM", "13:00:00", etc.
  */
 export function normalizeTimeSlot(time: string): string {
   if (!time) return '';
   const cleaned = time.trim().replace(/\s+/g, ' ').toUpperCase();
-  const match = cleaned.match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+  const match = cleaned.match(/^(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*(AM|PM))?$/i);
   if (!match) return cleaned;
 
   let h = parseInt(match[1], 10);
@@ -214,7 +224,7 @@ export function normalizeTimeSlot(time: string): string {
     period = h >= 12 ? 'PM' : 'AM';
     h = h % 12 || 12;
   } else {
-    h = h % 12 || (h === 12 ? 12 : h);
+    h = h % 12 || 12;
   }
 
   return `${h}:${m} ${period}`;
@@ -255,15 +265,15 @@ export async function createBooking(data: Omit<Booking, 'id' | 'createdAt' | 'st
     return newBooking.id;
   }
 
-  // Pre-check in Firestore before creating
-  const q = query(
-    collection(db, 'bookings'),
-    where('date', '==', cleanDate)
-  );
-  const snap = await getDocs(q);
+  // Pre-check in Firestore before creating: query all bookings for the collection and check date & time
+  const snap = await getDocs(collection(db, 'bookings'));
   const isConflict = snap.docs.some(d => {
     const b = d.data() as Booking;
-    return b.status !== 'cancelled' && normalizeTimeSlot(b.time) === cleanTime;
+    return (
+      b.status !== 'cancelled' &&
+      normalizeDate(b.date) === cleanDate &&
+      normalizeTimeSlot(b.time) === cleanTime
+    );
   });
 
   if (isConflict) {
@@ -291,14 +301,10 @@ export async function getBookingsByDate(date: string): Promise<Booking[]> {
   }
 
   try {
-    const q = query(
-      collection(db, 'bookings'),
-      where('date', '==', cleanDate)
-    );
-    const snap = await getDocs(q);
+    const snap = await getDocs(collection(db, 'bookings'));
     return snap.docs
       .map(d => ({ id: d.id, ...d.data() }) as Booking)
-      .filter(b => b.status !== 'cancelled');
+      .filter(b => b.status !== 'cancelled' && normalizeDate(b.date) === cleanDate);
   } catch (err) {
     console.error('Error fetching bookings by date:', err);
     return [];
@@ -329,22 +335,22 @@ export function subscribeToBookingsByDate(
     return () => window.removeEventListener('storage', check);
   }
 
-  const q = query(
-    collection(db, 'bookings'),
-    where('date', '==', cleanDate)
-  );
-
+  // Listen to bookings collection in real time and filter accurately by normalized date
+  const q = collection(db, 'bookings');
   return onSnapshot(
     q,
     (snap) => {
       const taken = snap.docs
         .map(d => d.data() as Booking)
-        .filter(b => b.status !== 'cancelled')
+        .filter(b => b.status !== 'cancelled' && normalizeDate(b.date) === cleanDate)
         .map(b => normalizeTimeSlot(b.time));
       callback(taken);
     },
     (err) => {
       console.error('Real-time bookings by date error:', err);
+      getBookingsByDate(cleanDate).then(list => {
+        callback(list.map(b => normalizeTimeSlot(b.time)));
+      }).catch(() => {});
     }
   );
 }
@@ -434,6 +440,20 @@ export async function updateBookingStatus(
   }
 
   await updateDoc(doc(db, 'bookings', id), { status });
+}
+
+/** Update custom / final booking quote price */
+export async function updateBookingPrice(
+  id: string,
+  finalPrice: number
+): Promise<void> {
+  if (!isFirebaseConfigured) {
+    const list = getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS);
+    setLocal('luxe_bookings', list.map(b => b.id === id ? { ...b, finalPrice } : b));
+    return;
+  }
+
+  await updateDoc(doc(db, 'bookings', id), { finalPrice });
 }
 
 /** Subscribe to all messages in real time */

@@ -23,11 +23,13 @@ import {
   Sparkles,
   BedDouble,
   Bath,
+  Save,
 } from 'lucide-react';
 import {
   subscribeToAllBookings,
   subscribeToAllMessages,
   updateBookingStatus,
+  updateBookingPrice,
   deleteBooking,
 } from '../../lib/firestore';
 import type { Booking, ContactMessage } from '../../types';
@@ -206,10 +208,30 @@ export default function Dashboard() {
     return booking.finalPrice || booking.estimatedPrice || 160;
   };
 
-  // Quick SMS Link
+  const [savedPriceId, setSavedPriceId] = useState<string | null>(null);
+
+  const handleSavePrice = async (bookingId: string) => {
+    const priceToSave = editingPrice[bookingId];
+    if (priceToSave !== undefined && priceToSave !== '') {
+      const num = Number(priceToSave);
+      if (!isNaN(num) && num >= 0) {
+        await updateBookingPrice(bookingId, num);
+        setSavedPriceId(bookingId);
+        setTimeout(() => setSavedPriceId(null), 2500);
+      }
+    }
+  };
+
+  // Quick SMS Link (iMessage)
   const getSmsLink = (booking: Booking) => {
     const price = getQuotePrice(booking);
-    const text = `Hello ${booking.name}! Thank you for booking with LUXE A&P Cleaning. Your quote for ${booking.service} on ${booking.date} at ${booking.time} is $${price}. Please reply YES to confirm your appointment. Have a wonderful day!`;
+    const specs = [
+      booking.bedrooms ? `${booking.bedrooms} Bed` : null,
+      booking.bathrooms ? `${booking.bathrooms} Bath` : null,
+      booking.extras && booking.extras.length > 0 ? `Extras: ${booking.extras.join(', ')}` : null,
+    ].filter(Boolean).join(', ');
+
+    const text = `Hello ${booking.name}! ✨ LUXE A&P Cleaning here. Your personalized quote for ${booking.service} (${specs}) on ${booking.date} at ${booking.time} is $${price}. Please reply YES to confirm your appointment. Have a wonderful day!`;
     const digits = cleanPhone(booking.phone);
     return `sms:${digits}?&body=${encodeURIComponent(text)}`;
   };
@@ -217,7 +239,8 @@ export default function Dashboard() {
   // Quick WhatsApp Link
   const getWhatsAppLink = (booking: Booking) => {
     const price = getQuotePrice(booking);
-    const text = `Hello ${booking.name}! ✨\n\nThank you for choosing *LUXE A&P Cleaning*.\n\nHere are your booking details:\n• *Service:* ${booking.service}\n• *Date & Time:* ${booking.date} at ${booking.time}\n• *Address:* ${booking.address}\n• *Total Quote:* $${price}\n\nPlease let us know if you would like to confirm your appointment!`;
+    const extrasLine = booking.extras && booking.extras.length > 0 ? `\n• *Add-ons:* ${booking.extras.join(', ')}` : '';
+    const text = `Hello ${booking.name}! ✨\n\nThank you for requesting your cleaning with *LUXE A&P Cleaning*.\n\nHere are your customized booking & quote details:\n• *Service:* ${booking.service}\n• *Home Size:* ${booking.bedrooms || 1} Bed, ${booking.bathrooms || 1} Bath${extrasLine}\n• *Date & Time:* ${booking.date} at ${booking.time}\n• *Address:* ${booking.address}\n• *Total Quote Price:* $${price}\n\nPlease reply to this message to confirm your appointment! 🧹✨`;
     let digits = cleanPhone(booking.phone);
     if (digits.length === 10) digits = '1' + digits; // US country code
     return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
@@ -227,7 +250,8 @@ export default function Dashboard() {
   const getEmailLink = (booking: Booking) => {
     const price = getQuotePrice(booking);
     const subject = `LUXE A&P Cleaning — Appointment Confirmation & Quote ($${price})`;
-    const body = `Hello ${booking.name},\n\nThank you for requesting a cleaning service with LUXE A&P Cleaning.\n\nAppointment Summary:\n- Service: ${booking.service}\n- Scheduled: ${booking.date} at ${booking.time}\n- Address: ${booking.address}\n- Total Price: $${price}\n\nPlease reply to this email or text us at +1 (774) 360-4824 to confirm.\n\nWarm regards,\nLUXE A&P Cleaning Team`;
+    const extrasLine = booking.extras && booking.extras.length > 0 ? `\n- Optional Add-ons: ${booking.extras.join(', ')}` : '';
+    const body = `Hello ${booking.name},\n\nThank you for requesting a cleaning service with LUXE A&P Cleaning.\n\nCustomized Appointment Summary:\n- Service: ${booking.service}\n- Property Details: ${booking.bedrooms || 1} Bedroom(s), ${booking.bathrooms || 1} Bathroom(s)${extrasLine}\n- Scheduled: ${booking.date} at ${booking.time}\n- Address: ${booking.address}\n- Total Price Quote: $${price}\n\nPlease reply to this email or text us at +1 (774) 360-4824 to confirm your appointment.\n\nWarm regards,\nLUXE A&P Cleaning Team`;
     return `mailto:${booking.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
@@ -524,9 +548,28 @@ export default function Dashboard() {
                               onChange={e => setEditingPrice({ ...editingPrice, [booking.id]: e.target.value })}
                               placeholder="180"
                             />
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-gold"
+                              style={{ padding: '4px 10px', fontSize: '12px' }}
+                              onClick={() => handleSavePrice(booking.id)}
+                              title="Salvar valor no banco de dados"
+                            >
+                              {savedPriceId === booking.id ? (
+                                <>
+                                  <CheckCircle size={13} />
+                                  Salvo!
+                                </>
+                              ) : (
+                                <>
+                                  <Save size={13} />
+                                  Salvar
+                                </>
+                              )}
+                            </button>
                           </div>
                           <span className="dashboard__quote-hint">
-                            (Estimado pelo cliente: ${booking.estimatedPrice || currentPrice})
+                            (Base sugerida pelo sistema: ${booking.estimatedPrice || currentPrice})
                           </span>
                         </div>
 

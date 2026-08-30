@@ -11,8 +11,7 @@ import {
   BedDouble,
   Plus,
   Check,
-  DollarSign,
-  Sparkles,
+  CalendarCheck,
 } from 'lucide-react';
 import {
   SERVICES,
@@ -31,7 +30,7 @@ import {
   getLocalTomorrowString,
 } from '../../lib/firestore';
 import { getScheduleConfig, generateTimeSlots, getPricingConfig, DEFAULT_PRICING } from '../../lib/firestore';
-import type { PricingConfig } from '../../types';
+import type { PricingConfig, ScheduleConfig } from '../../types';
 import { sendBookingEmail } from '../../lib/email';
 import './Booking.css';
 
@@ -65,6 +64,16 @@ const INITIAL: FormData = {
   notes: '',
 };
 
+const DAY_KEYS: (keyof ScheduleConfig['workDays'])[] = [
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+];
+
 export default function Booking() {
   const ref = useRevealOnScroll();
   const [step, setStep] = useState<Step>(1);
@@ -73,6 +82,7 @@ export default function Booking() {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeSlots, setTimeSlots] = useState<string[]>(FALLBACK_TIME_SLOTS);
+  const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig | null>(null);
   const [pricingConfig, setPricingConfig] = useState<PricingConfig>(DEFAULT_PRICING);
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -81,6 +91,7 @@ export default function Booking() {
   useEffect(() => {
     getScheduleConfig()
       .then(config => {
+        setScheduleConfig(config);
         const slots = generateTimeSlots(config);
         if (slots.length > 0) setTimeSlots(slots);
       })
@@ -101,7 +112,8 @@ export default function Booking() {
     }
 
     setLoadingSlots(true);
-    const unsubscribe = subscribeToBookingsByDate(form.date, (taken) => {
+    const cleanDate = normalizeDate(form.date);
+    const unsubscribe = subscribeToBookingsByDate(cleanDate, (taken) => {
       setBookedSlots(taken);
       setLoadingSlots(false);
 
@@ -140,19 +152,39 @@ export default function Booking() {
     return sum + (extra ? extra.price : 0);
   }, 0);
 
+  // Background estimate for admin quote suggestion (not displayed to client)
   const estimatedPrice = basePrice + extraBedsPrice + extraBathsPrice + extrasTotal;
 
   const validateStep = useCallback((): boolean => {
     const errs: Partial<Record<keyof FormData, string>> = {};
 
-    if (step === 1 && !form.service) errs.service = 'Please select a service';
+    if (step === 1 && !form.service) errs.service = 'Please select a service package';
     if (step === 2) {
-      if (!form.date) errs.date = 'Please select a date';
-      if (!form.time) errs.time = 'Please select a time';
-      if (form.date && new Date(form.date) < new Date(new Date().toDateString())) {
-        errs.date = 'Please select a future date';
+      if (!form.date) {
+        errs.date = 'Please select a date';
+      } else {
+        const cleanDate = normalizeDate(form.date);
+        const selectedD = new Date(cleanDate + 'T12:00:00');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedD < today) {
+          errs.date = 'Please select a future date';
+        } else if (scheduleConfig) {
+          if (scheduleConfig.blockedDates?.includes(cleanDate)) {
+            errs.date = 'This date is unavailable for booking. Please select another date.';
+          } else {
+            const dayKey = DAY_KEYS[selectedD.getDay()];
+            if (scheduleConfig.workDays && scheduleConfig.workDays[dayKey] === false) {
+              errs.date = 'We are closed on this day of the week. Please select an available working day.';
+            }
+          }
+        }
       }
-      if (form.date && form.time) {
+
+      if (!form.time) {
+        errs.time = 'Please select an arrival time slot';
+      } else if (form.date && form.time) {
         const isTaken = bookedSlots.some(b => normalizeTimeSlot(b) === normalizeTimeSlot(form.time));
         if (isTaken) {
           errs.time = 'This time slot is already reserved. Please select another time.';
@@ -160,17 +192,17 @@ export default function Booking() {
       }
     }
     if (step === 3) {
-      if (!form.name.trim()) errs.name = 'Name is required';
+      if (!form.name.trim()) errs.name = 'Full name is required';
       if (!form.email.trim()) errs.email = 'Email is required';
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email address';
-      if (!form.phone.trim()) errs.phone = 'Phone is required';
+      if (!form.phone.trim()) errs.phone = 'Phone number is required';
       else if (!/^[\d\s\-().+]{7,}$/.test(form.phone)) errs.phone = 'Invalid phone number';
-      if (!form.address.trim()) errs.address = 'Address is required';
+      if (!form.address.trim()) errs.address = 'Service address is required';
     }
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
-  }, [step, form, bookedSlots]);
+  }, [step, form, bookedSlots, scheduleConfig]);
 
   const next = useCallback((e?: React.MouseEvent) => {
     if (e) e.preventDefault();
@@ -198,9 +230,12 @@ export default function Booking() {
     if (!validateStep()) return;
     setIsSubmitting(true);
     try {
+      const cleanDate = normalizeDate(form.date);
+      const cleanTime = normalizeTimeSlot(form.time);
+
       // Re-verify slot availability immediately before creating to prevent race conditions
-      const currentBookings = await getBookingsByDate(form.date);
-      const isTaken = currentBookings.some(b => normalizeTimeSlot(b.time) === normalizeTimeSlot(form.time));
+      const currentBookings = await getBookingsByDate(cleanDate);
+      const isTaken = currentBookings.some(b => normalizeTimeSlot(b.time) === cleanTime);
       if (isTaken) {
         setErrors(prev => ({
           ...prev,
@@ -227,8 +262,8 @@ export default function Booking() {
         bathrooms: form.bathrooms,
         extras: extraNames,
         estimatedPrice,
-        date: normalizeDate(form.date),
-        time: normalizeTimeSlot(form.time),
+        date: cleanDate,
+        time: cleanTime,
         name: form.name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
@@ -280,18 +315,14 @@ export default function Booking() {
             <div className="booking__success-icon">
               <CheckCircle size={48} />
             </div>
-            <h2 className="booking__success-title">Request Submitted!</h2>
+            <h2 className="booking__success-title">Booking Request Received!</h2>
             <p className="booking__success-text">
-              Thank you, <strong>{form.name}</strong>! We've received your request for{' '}
+              Thank you, <strong>{form.name}</strong>! We've received your booking request for{' '}
               <strong>{selectedService?.name}</strong> on <strong>{form.date}</strong> at{' '}
               <strong>{form.time}</strong>.
             </p>
-            <div className="booking__success-quote">
-              <span>Estimated Quote:</span>
-              <strong>${estimatedPrice}</strong>
-            </div>
             <p className="booking__success-sub">
-              We'll confirm your final appointment details shortly via SMS or email.
+              Our team is reviewing your home specifications ({form.bedrooms} Bed, {form.bathrooms} Bath) and will send your customized quote and confirmation details shortly via WhatsApp, SMS / iMessage, or Email.
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <a
@@ -326,7 +357,7 @@ export default function Booking() {
           <h2 className="section-title">Schedule Your Cleaning</h2>
           <hr className="gold-line" />
           <p className="section-subtitle">
-            Get an instant transparent estimate and book your preferred date in minutes.
+            Select your cleaning package, home size, and preferred schedule. We will send you a personalized quote to confirm your appointment.
           </p>
         </div>
 
@@ -348,25 +379,6 @@ export default function Booking() {
               {num < 3 && <div className="booking__step-line" />}
             </div>
           ))}
-        </div>
-
-        {/* Estimate Banner Box */}
-        <div className="booking__estimate-banner reveal">
-          <div className="booking__estimate-left">
-            <Sparkles size={20} className="booking__estimate-sparkle" />
-            <div>
-              <span className="booking__estimate-tag">Instant Estimate</span>
-              <p className="booking__estimate-sub">
-                {form.bedrooms} Bed &bull; {form.bathrooms} Bath
-                {form.extras.length > 0 && ` + ${form.extras.length} Add-on${form.extras.length > 1 ? 's' : ''}`}
-              </p>
-            </div>
-          </div>
-          <div className="booking__estimate-price-wrap">
-            <span className="booking__estimate-currency">$</span>
-            <span className="booking__estimate-val">{estimatedPrice}</span>
-            <span className="booking__estimate-note">estimated</span>
-          </div>
         </div>
 
         {/* Form card */}
@@ -458,7 +470,6 @@ export default function Booking() {
                           <strong>{extra.name}</strong>
                           <span>{extra.description}</span>
                         </div>
-                        <span className="booking__extra-price">+${extra.price}</span>
                       </button>
                     );
                   })}
@@ -494,34 +505,34 @@ export default function Booking() {
                     <label className="form-label" style={{ color: 'var(--color-gray-400)', margin: 0 }}>Select Arrival Time Slot</label>
                     {loadingSlots && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gold)' }}>Checking availability...</span>}
                   </div>
-                    <div className="booking__time-grid">
-                      {timeSlots.map(slot => {
-                        const isBooked = bookedSlots.some(b => normalizeTimeSlot(b) === normalizeTimeSlot(slot));
-                        const isSelected = !isBooked && form.time && normalizeTimeSlot(form.time) === normalizeTimeSlot(slot);
-                        return (
-                          <button
-                            key={slot}
-                            type="button"
-                            disabled={isBooked}
-                            aria-disabled={isBooked}
-                            className={`booking__time-slot ${isSelected ? 'booking__time-slot--selected' : ''} ${isBooked ? 'booking__time-slot--booked' : ''}`}
-                            onClick={() => {
-                              if (!isBooked) {
-                                set('time', slot);
-                              }
-                            }}
-                            title={isBooked ? 'This slot has already been reserved' : slot}
-                          >
-                            <span>{slot}</span>
-                            {isBooked && <span className="booking__time-slot-tag">Reserved</span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {errors.time && <p className="form-error">{errors.time}</p>}
+                  <div className="booking__time-grid">
+                    {timeSlots.map(slot => {
+                      const isBooked = bookedSlots.some(b => normalizeTimeSlot(b) === normalizeTimeSlot(slot));
+                      const isSelected = !isBooked && form.time && normalizeTimeSlot(form.time) === normalizeTimeSlot(slot);
+                      return (
+                        <button
+                          key={slot}
+                          type="button"
+                          disabled={isBooked}
+                          aria-disabled={isBooked}
+                          className={`booking__time-slot ${isSelected ? 'booking__time-slot--selected' : ''} ${isBooked ? 'booking__time-slot--booked' : ''}`}
+                          onClick={() => {
+                            if (!isBooked) {
+                              set('time', slot);
+                            }
+                          }}
+                          title={isBooked ? 'This slot has already been reserved' : slot}
+                        >
+                          <span>{slot}</span>
+                          {isBooked && <span className="booking__time-slot-tag">Reserved</span>}
+                        </button>
+                      );
+                    })}
                   </div>
+                  {errors.time && <p className="form-error">{errors.time}</p>}
                 </div>
               </div>
+            </div>
           )}
 
           {/* Step 3: Personal info */}
@@ -558,7 +569,7 @@ export default function Booking() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="booking-phone" style={{ color: 'var(--color-gray-400)' }}>Phone Number (Mobile for SMS confirmation)</label>
+                  <label className="form-label" htmlFor="booking-phone" style={{ color: 'var(--color-gray-400)' }}>Phone Number (Mobile for SMS / WhatsApp confirmation)</label>
                   <input
                     id="booking-phone"
                     type="tel"
@@ -602,8 +613,8 @@ export default function Booking() {
               {/* Order review summary */}
               <div className="booking__summary-card">
                 <h4 className="booking__summary-header">
-                  <DollarSign size={18} />
-                  <span>Estimated Total &amp; Service Summary</span>
+                  <CalendarCheck size={18} />
+                  <span>Booking &amp; Service Summary</span>
                 </h4>
                 <div className="booking__summary-rows">
                   <div className="booking__summary-row">
@@ -616,7 +627,7 @@ export default function Booking() {
                   </div>
                   {form.extras.length > 0 && (
                     <div className="booking__summary-row">
-                      <span>Add-ons:</span>
+                      <span>Selected Add-ons:</span>
                       <strong>{form.extras.map(eId => extrasList.find(e => e.id === eId)?.name).filter(Boolean).join(', ')}</strong>
                     </div>
                   )}
@@ -624,13 +635,9 @@ export default function Booking() {
                     <span>Schedule:</span>
                     <strong>{form.date} at {form.time}</strong>
                   </div>
-                  <div className="booking__summary-row booking__summary-row--total">
-                    <span>Estimated Total:</span>
-                    <strong className="booking__summary-price">${estimatedPrice}</strong>
-                  </div>
                 </div>
                 <p className="booking__summary-disclaimer">
-                  * No payment required now. Final quote confirmed with you via SMS/text or phone upon booking review.
+                  * No upfront payment required. Our team will review your property specifications and send your personalized quote via SMS / iMessage, WhatsApp, or Email to confirm your booking.
                 </p>
               </div>
             </div>
@@ -659,7 +666,7 @@ export default function Booking() {
                   </>
                 ) : (
                   <>
-                    Complete Booking Request
+                    Submit Booking Request
                     <ArrowRight size={18} />
                   </>
                 )}

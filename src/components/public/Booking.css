@@ -347,9 +347,7 @@
   display: block;
   font-size: 11px;
   color: var(--color-gray-500);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.35;
 }
 
 .booking__extra-price {

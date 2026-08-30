@@ -184,6 +184,25 @@ export function normalizeDate(date: string): string {
 }
 
 /**
+ * Safely parse a "YYYY-MM-DD" date string into a local Date at 12:00:00 PM without any UTC timezone shift.
+ */
+export function parseLocalDate(dateStr: string): Date {
+  const clean = normalizeDate(dateStr);
+  const parts = clean.split('-').map(Number);
+  if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+    return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0, 0);
+  }
+  return new Date();
+}
+
+/**
+ * Returns the 0-indexed day of the week (0 = Sunday, 1 = Monday, 2 = Tuesday, 3 = Wednesday, 4 = Thursday, 5 = Friday, 6 = Saturday) without timezone shifts.
+ */
+export function getDayOfWeekFromDate(dateStr: string): number {
+  return parseLocalDate(dateStr).getDay();
+}
+
+/**
  * Returns today's date in local time as "YYYY-MM-DD"
  */
 export function getLocalTodayString(): string {
@@ -258,8 +277,8 @@ export async function createBooking(data: Omit<Booking, 'id' | 'createdAt' | 'st
       'friday',
       'saturday',
     ];
-    const d = new Date(cleanDate + 'T12:00:00');
-    const dayKey = dayKeys[d.getDay()];
+    const dayIndex = getDayOfWeekFromDate(cleanDate);
+    const dayKey = dayKeys[dayIndex];
     if (schedConfig.workDays && schedConfig.workDays[dayKey] === false) {
       throw new Error('We are closed on this day of the week. Please choose an open day.');
     }
@@ -647,6 +666,43 @@ export async function updateScheduleConfig(config: ScheduleConfig): Promise<void
   } catch (err) {
     console.error('Error saving schedule config to Firestore:', err);
   }
+}
+
+/** Subscribe to schedule config in real time */
+export function subscribeToScheduleConfig(callback: (config: ScheduleConfig) => void): Unsubscribe {
+  if (!isFirebaseConfigured) {
+    const fetchLocal = () => callback(getLocal<ScheduleConfig>('luxe_schedule', DEFAULT_SCHEDULE));
+    fetchLocal();
+    window.addEventListener('storage', fetchLocal);
+    return () => window.removeEventListener('storage', fetchLocal);
+  }
+
+  return onSnapshot(
+    getScheduleDoc(),
+    (snap) => {
+      if (!snap.exists()) {
+        callback(DEFAULT_SCHEDULE);
+        return;
+      }
+      const data = snap.data() as ScheduleConfig;
+      const merged: ScheduleConfig = {
+        ...DEFAULT_SCHEDULE,
+        ...data,
+        workDays: {
+          ...DEFAULT_SCHEDULE.workDays,
+          ...(data.workDays || {}),
+        },
+        customSlots: data.customSlots || DEFAULT_SCHEDULE.customSlots,
+        blockedDates: Array.isArray(data.blockedDates) ? data.blockedDates : [],
+      };
+      setLocal('luxe_schedule', merged);
+      callback(merged);
+    },
+    (err) => {
+      console.error('Real-time schedule subscription error:', err);
+      getScheduleConfig().then(callback).catch(() => {});
+    }
+  );
 }
 
 /* ============================================================

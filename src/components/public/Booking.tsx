@@ -29,8 +29,11 @@ import {
   normalizeTimeSlot,
   normalizeDate,
   getLocalTomorrowString,
+  getDayOfWeekFromDate,
+  parseLocalDate,
+  subscribeToScheduleConfig,
 } from '../../lib/firestore';
-import { getScheduleConfig, generateTimeSlots, getPricingConfig, DEFAULT_PRICING } from '../../lib/firestore';
+import { generateTimeSlots, getPricingConfig, DEFAULT_PRICING } from '../../lib/firestore';
 import type { PricingConfig, ScheduleConfig } from '../../types';
 import { sendBookingEmail } from '../../lib/email';
 import './Booking.css';
@@ -86,10 +89,10 @@ const DAY_NAMES_EN = [
 ];
 
 /** Helper to check if a specific date is closed or blocked */
-function getDateAvailability(dateStr: string, config: ScheduleConfig | null): { unavailable: boolean; reason?: string } {
+function getDateAvailability(dateStr: string, config: ScheduleConfig | null): { unavailable: boolean; reason?: string; dayName?: string } {
   if (!dateStr) return { unavailable: false };
   const cleanDate = normalizeDate(dateStr);
-  const d = new Date(cleanDate + 'T12:00:00');
+  const d = parseLocalDate(cleanDate);
   if (isNaN(d.getTime())) {
     return { unavailable: true, reason: 'Invalid date format' };
   }
@@ -107,13 +110,15 @@ function getDateAvailability(dateStr: string, config: ScheduleConfig | null): { 
         reason: 'This date is currently blocked on our calendar and unavailable for appointments.',
       };
     }
-    const dayIndex = d.getDay();
+    const dayIndex = getDayOfWeekFromDate(cleanDate);
     const dayKey = DAY_KEYS[dayIndex];
+    const dayName = DAY_NAMES_EN[dayIndex];
+
     if (config.workDays && config.workDays[dayKey] === false) {
-      const dayName = DAY_NAMES_EN[dayIndex];
       return {
         unavailable: true,
-        reason: `Our team is closed on ${dayName}s. Please choose an open day of the week.`,
+        dayName,
+        reason: `Our team does not operate on ${dayName}s. Please choose an open day of the week.`,
       };
     }
   }
@@ -153,28 +158,33 @@ export default function Booking() {
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
-  // Load dynamic time slots and schedule config from admin
+  // Real-time listener for schedule config from admin (active days, slots, blocked dates)
   useEffect(() => {
-    getScheduleConfig()
-      .then(config => {
-        setScheduleConfig(config);
-        const slots = generateTimeSlots(config);
-        if (slots.length > 0) setTimeSlots(slots);
+    const unsubSchedule = subscribeToScheduleConfig((config) => {
+      setScheduleConfig(config);
+      const slots = generateTimeSlots(config);
+      if (slots.length > 0) setTimeSlots(slots);
 
-        // If the default tomorrow date happens to be closed, find the first available open date
-        const initialStatus = getDateAvailability(INITIAL.date, config);
-        if (initialStatus.unavailable) {
-          const firstOpen = findFirstOpenDate(config);
-          setForm(prev => ({ ...prev, date: firstOpen }));
+      // Check current selected date against new schedule
+      setForm(prev => {
+        const status = getDateAvailability(prev.date, config);
+        if (status.unavailable) {
+          const nextOpen = findFirstOpenDate(config);
+          return { ...prev, date: nextOpen, time: '' };
         }
-      })
-      .catch(() => { /* keep fallback slots */ });
+        return prev;
+      });
+    });
 
     getPricingConfig()
       .then(cfg => {
         if (cfg) setPricingConfig(cfg);
       })
       .catch(() => { /* keep default */ });
+
+    return () => {
+      unsubSchedule();
+    };
   }, []);
 
   // Real-time listener for booked slots on the selected date to prevent double booking

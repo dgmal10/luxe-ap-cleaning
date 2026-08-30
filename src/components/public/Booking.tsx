@@ -209,6 +209,13 @@ export default function Booking() {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDate = tomorrow.toISOString().split('T')[0];
 
+  const handleResetForm = useCallback(() => {
+    setForm(INITIAL);
+    setStep(1);
+    setErrors({});
+    setSubmitted(false);
+  }, []);
+
   if (submitted) {
     return (
       <section className="booking section section-dark" id="booking">
@@ -230,15 +237,25 @@ export default function Booking() {
             <p className="booking__success-sub">
               We'll confirm your final appointment details shortly via SMS or email.
             </p>
-            <a
-              href={BUSINESS.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-primary btn-lg"
-            >
-              <MessageCircle size={18} />
-              Chat on WhatsApp
-            </a>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <a
+                href={BUSINESS.whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary btn-lg"
+              >
+                <MessageCircle size={18} />
+                Chat on WhatsApp
+              </a>
+              <button
+                type="button"
+                className="btn btn-secondary btn-lg"
+                onClick={handleResetForm}
+              >
+                <Plus size={18} />
+                Book Another Cleaning
+              </button>
+            </div>
           </div>
         </div>
       </section>

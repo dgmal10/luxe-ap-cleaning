@@ -8,12 +8,12 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCkoKUhuwVV4c8mwmTYtpRBV8aKo04V-B8',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'luxe-ap-cleaning.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'luxe-ap-cleaning',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'luxe-ap-cleaning.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '1057012747509',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:1057012747509:web:acfb7234eddd60219c09bc',
 };
 
 /** Whether Firebase is configured (has at least an API key) */

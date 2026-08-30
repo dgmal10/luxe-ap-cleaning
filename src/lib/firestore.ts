@@ -349,18 +349,41 @@ export function subscribeToBookingsByDate(
   );
 }
 
+function getTimestampMillis(ts: unknown, fallbackDate?: string): number {
+  if (ts && typeof ts === 'object') {
+    if ('seconds' in ts && typeof (ts as { seconds: number }).seconds === 'number') {
+      return (ts as { seconds: number }).seconds * 1000;
+    }
+    if ('toMillis' in ts && typeof (ts as { toMillis: () => number }).toMillis === 'function') {
+      return (ts as { toMillis: () => number }).toMillis();
+    }
+  }
+  if (fallbackDate) {
+    try {
+      const parsed = new Date(`${fallbackDate}T12:00:00`).getTime();
+      if (!isNaN(parsed)) return parsed;
+    } catch {
+      // ignore
+    }
+  }
+  return 0;
+}
+
 /** Get all bookings */
 export async function getAllBookings(): Promise<Booking[]> {
   if (!isFirebaseConfigured) {
     return getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS);
   }
 
-  const q = query(
-    collection(db, 'bookings'),
-    orderBy('createdAt', 'desc')
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }) as Booking);
+  try {
+    const snap = await getDocs(collection(db, 'bookings'));
+    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Booking);
+    list.sort((a, b) => getTimestampMillis(b.createdAt, b.date) - getTimestampMillis(a.createdAt, a.date));
+    return list;
+  } catch (err) {
+    console.error('Error fetching all bookings:', err);
+    return [];
+  }
 }
 
 /** Subscribe to all bookings in real time */
@@ -372,16 +395,20 @@ export function subscribeToAllBookings(callback: (bookings: Booking[]) => void):
     return () => window.removeEventListener('storage', fetchLocal);
   }
 
-  const q = query(
-    collection(db, 'bookings'),
-    orderBy('createdAt', 'desc')
+  const q = collection(db, 'bookings');
+  return onSnapshot(
+    q,
+    (snap) => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Booking);
+      list.sort((a, b) => getTimestampMillis(b.createdAt, b.date) - getTimestampMillis(a.createdAt, a.date));
+      callback(list);
+    },
+    (err) => {
+      console.error('Real-time bookings subscription error:', err);
+      // Fallback one-time fetch
+      getAllBookings().then(callback).catch(() => {});
+    }
   );
-  return onSnapshot(q, (snap) => {
-    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Booking);
-    callback(list);
-  }, (err) => {
-    console.error('Real-time bookings subscription error:', err);
-  });
 }
 
 /** Delete a booking */
@@ -418,16 +445,19 @@ export function subscribeToAllMessages(callback: (messages: ContactMessage[]) =>
     return () => window.removeEventListener('storage', fetchLocal);
   }
 
-  const q = query(
-    collection(db, 'messages'),
-    orderBy('createdAt', 'desc')
+  const q = collection(db, 'messages');
+  return onSnapshot(
+    q,
+    (snap) => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }) as ContactMessage);
+      list.sort((a, b) => getTimestampMillis(b.createdAt) - getTimestampMillis(a.createdAt));
+      callback(list);
+    },
+    (err) => {
+      console.error('Real-time messages subscription error:', err);
+      getMessages().then(callback).catch(() => {});
+    }
   );
-  return onSnapshot(q, (snap) => {
-    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }) as ContactMessage);
-    callback(list);
-  }, (err) => {
-    console.error('Real-time messages subscription error:', err);
-  });
 }
 
 /* ============================================================

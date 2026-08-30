@@ -33,6 +33,7 @@ import {
   deleteBooking,
 } from '../../lib/firestore';
 import type { Booking, ContactMessage } from '../../types';
+import { sendClientConfirmationEmail, sendClientCancellationEmail } from '../../lib/email';
 import './Dashboard.css';
 
 function formatDate(date: Date): string {
@@ -185,6 +186,19 @@ export default function Dashboard() {
   const handleStatusChange = async (id: string, status: Booking['status']) => {
     try {
       await updateBookingStatus(id, status);
+      const targetBooking = allBookings.find(b => b.id === id);
+      if (targetBooking) {
+        const updatedBooking = { ...targetBooking, status };
+        if (status === 'confirmed') {
+          sendClientConfirmationEmail(updatedBooking).catch(() => {});
+          setNotification(`✅ Agendamento de ${targetBooking.name} confirmado! E-mail enviado.`);
+          setTimeout(() => setNotification(null), 4000);
+        } else if (status === 'cancelled') {
+          sendClientCancellationEmail(updatedBooking).catch(() => {});
+          setNotification(`❌ Agendamento de ${targetBooking.name} cancelado.`);
+          setTimeout(() => setNotification(null), 4000);
+        }
+      }
     } catch (err) {
       console.error('Failed to update booking status:', err);
     }
@@ -230,8 +244,9 @@ export default function Dashboard() {
       booking.bathrooms ? `${booking.bathrooms} Bath` : null,
       booking.extras && booking.extras.length > 0 ? `Extras: ${booking.extras.join(', ')}` : null,
     ].filter(Boolean).join(', ');
+    const manageUrl = `${window.location.origin}/manage-booking?id=${booking.id}`;
 
-    const text = `Hello ${booking.name}! ✨ LUXE A&P Cleaning here. Your personalized quote for ${booking.service} (${specs}) on ${booking.date} at ${booking.time} is $${price}. Please reply YES to confirm your appointment. Have a wonderful day!`;
+    const text = `Hello ${booking.name}! ✨ LUXE A&P Cleaning here. Your personalized quote for ${booking.service} (${specs}) on ${booking.date} at ${booking.time} is $${price}.\n\nPlease reply YES to confirm. You can also view/manage your reservation here: ${manageUrl}\nHave a wonderful day!`;
     const digits = cleanPhone(booking.phone);
     return `sms:${digits}?&body=${encodeURIComponent(text)}`;
   };
@@ -240,7 +255,9 @@ export default function Dashboard() {
   const getWhatsAppLink = (booking: Booking) => {
     const price = getQuotePrice(booking);
     const extrasLine = booking.extras && booking.extras.length > 0 ? `\n• *Add-ons:* ${booking.extras.join(', ')}` : '';
-    const text = `Hello ${booking.name}! ✨\n\nThank you for requesting your cleaning with *LUXE A&P Cleaning*.\n\nHere are your customized booking & quote details:\n• *Service:* ${booking.service}\n• *Home Size:* ${booking.bedrooms || 1} Bed, ${booking.bathrooms || 1} Bath${extrasLine}\n• *Date & Time:* ${booking.date} at ${booking.time}\n• *Address:* ${booking.address}\n• *Total Quote Price:* $${price}\n\nPlease reply to this message to confirm your appointment! 🧹✨`;
+    const manageUrl = `${window.location.origin}/manage-booking?id=${booking.id}`;
+
+    const text = `Hello ${booking.name}! ✨\n\nThank you for requesting your cleaning with *LUXE A&P Cleaning*.\n\nHere are your customized booking & quote details:\n• *Service:* ${booking.service}\n• *Home Size:* ${booking.bedrooms || 1} Bed, ${booking.bathrooms || 1} Bath${extrasLine}\n• *Date & Time:* ${booking.date} at ${booking.time}\n• *Address:* ${booking.address}\n• *Total Quote Price:* $${price}\n\n🔗 *Manage or Cancel Appointment:* ${manageUrl}\n\nPlease reply to this message to confirm your appointment! 🧹✨`;
     let digits = cleanPhone(booking.phone);
     if (digits.length === 10) digits = '1' + digits; // US country code
     return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
@@ -251,7 +268,9 @@ export default function Dashboard() {
     const price = getQuotePrice(booking);
     const subject = `LUXE A&P Cleaning — Appointment Confirmation & Quote ($${price})`;
     const extrasLine = booking.extras && booking.extras.length > 0 ? `\n- Optional Add-ons: ${booking.extras.join(', ')}` : '';
-    const body = `Hello ${booking.name},\n\nThank you for requesting a cleaning service with LUXE A&P Cleaning.\n\nCustomized Appointment Summary:\n- Service: ${booking.service}\n- Property Details: ${booking.bedrooms || 1} Bedroom(s), ${booking.bathrooms || 1} Bathroom(s)${extrasLine}\n- Scheduled: ${booking.date} at ${booking.time}\n- Address: ${booking.address}\n- Total Price Quote: $${price}\n\nPlease reply to this email or text us at +1 (774) 360-4824 to confirm your appointment.\n\nWarm regards,\nLUXE A&P Cleaning Team`;
+    const manageUrl = `${window.location.origin}/manage-booking?id=${booking.id}`;
+
+    const body = `Hello ${booking.name},\n\nThank you for requesting a cleaning service with LUXE A&P Cleaning.\n\nCustomized Appointment Summary:\n- Service: ${booking.service}\n- Property Details: ${booking.bedrooms || 1} Bedroom(s), ${booking.bathrooms || 1} Bathroom(s)${extrasLine}\n- Scheduled: ${booking.date} at ${booking.time}\n- Address: ${booking.address}\n- Total Price Quote: $${price}\n\nYou can manage or cancel your appointment at any time using this link:\n${manageUrl}\n\nPlease reply to this email or text us at +1 (774) 360-4824 to confirm your appointment.\n\nWarm regards,\nLUXE A&P Cleaning Team`;
     return `mailto:${booking.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 

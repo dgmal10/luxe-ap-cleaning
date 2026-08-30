@@ -458,6 +458,26 @@ export function subscribeToAllBookings(callback: (bookings: Booking[]) => void):
   );
 }
 
+/** Get a single booking by ID */
+export async function getBookingById(id: string): Promise<Booking | null> {
+  const cleanId = id.trim();
+  if (!cleanId) return null;
+
+  if (!isFirebaseConfigured) {
+    const list = getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS);
+    return list.find(b => b.id.toLowerCase() === cleanId.toLowerCase()) || null;
+  }
+
+  try {
+    const snap = await getDoc(doc(db, 'bookings', cleanId));
+    if (!snap.exists()) return null;
+    return { id: snap.id, ...snap.data() } as Booking;
+  } catch (err) {
+    console.error('Error fetching booking by ID:', err);
+    return null;
+  }
+}
+
 /** Delete a booking */
 export async function deleteBooking(id: string): Promise<void> {
   if (!isFirebaseConfigured) {

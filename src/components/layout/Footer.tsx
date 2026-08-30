@@ -31,6 +31,9 @@ export default function Footer() {
                 {item.label}
               </button>
             ))}
+            <Link to="/manage-booking" className="footer__link footer__link--privacy">
+              Manage Appointment
+            </Link>
             <Link to="/privacy-policy" className="footer__link footer__link--privacy">
               Privacy Policy
             </Link>

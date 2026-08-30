@@ -362,22 +362,31 @@
 .booking__datetime {
   display: grid;
   gap: var(--space-6);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .booking__date-wrapper {
   position: relative;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .booking__date-input {
   width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   display: block !important;
   box-sizing: border-box !important;
-  padding: 14px 16px !important;
-  height: 52px !important;
-  min-height: 52px !important;
+  padding: 12px 14px !important;
+  height: 50px !important;
+  min-height: 50px !important;
   color: var(--color-white) !important;
   color-scheme: dark !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
   font-size: 16px !important;
   font-family: inherit !important;
   font-weight: 500 !important;
@@ -386,6 +395,14 @@
   border-radius: var(--radius-md) !important;
   transition: all var(--duration-fast) !important;
   cursor: pointer !important;
+  text-align: left !important;
+}
+
+.booking__date-input::-webkit-date-and-time-value {
+  text-align: left !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: normal !important;
 }
 
 .booking__date-input:focus {
@@ -597,7 +614,17 @@
 /* Responsive */
 @media (max-width: 768px) {
   .booking__card {
-    padding: var(--space-6);
+    padding: var(--space-4);
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .booking__datetime,
+  .booking__date-wrapper {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .booking__services-grid,

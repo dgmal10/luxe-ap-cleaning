@@ -160,12 +160,29 @@ export default function Booking() {
     return Object.keys(errs).length === 0;
   }, [step, form, bookedSlots]);
 
+  const scrollToBookingTop = () => {
+    const el = document.getElementById('booking');
+    if (el) {
+      const headerOffset = 80;
+      const elementPosition = el.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   const next = useCallback(() => {
-    if (validateStep()) setStep(s => Math.min(s + 1, 3) as Step);
+    if (validateStep()) {
+      setStep(s => Math.min(s + 1, 3) as Step);
+      setTimeout(scrollToBookingTop, 60);
+    }
   }, [validateStep]);
 
   const prev = useCallback(() => {
     setStep(s => Math.max(s - 1, 1) as Step);
+    setTimeout(scrollToBookingTop, 60);
   }, []);
 
   const handleSubmit = useCallback(async () => {

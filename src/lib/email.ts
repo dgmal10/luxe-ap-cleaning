@@ -23,7 +23,7 @@ export async function sendBookingEmail(booking: BookingFormData): Promise<boolea
   try {
     const templateParams = {
       to_name: 'LUXE A&P Team',
-      to_email: 'luxeaepcleaning@gmail.com',
+      to_email: 'luxeaepcleaning@gmail.com', // Always arrives at Admin's Gmail
       client_name: booking.name,
       name: booking.name,
       client_email: booking.email,
@@ -32,13 +32,13 @@ export async function sendBookingEmail(booking: BookingFormData): Promise<boolea
       phone: booking.phone,
       service_name: booking.service,
       service: booking.service,
-      home_size: `${booking.bedrooms} Bed, ${booking.bathrooms} Bath`,
+      home_size: `${booking.bedrooms} Bedroom(s), ${booking.bathrooms} Bathroom(s)`,
       bedrooms: booking.bedrooms,
       bathrooms: booking.bathrooms,
       selected_extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
       extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
       estimated_price: `$${booking.estimatedPrice}`,
-      final_price: `$${booking.estimatedPrice}`,
+      final_price: `$${booking.estimatedPrice} (Reference Suggestion)`,
       price: `$${booking.estimatedPrice}`,
       service_date: booking.date,
       date: booking.date,
@@ -46,11 +46,11 @@ export async function sendBookingEmail(booking: BookingFormData): Promise<boolea
       time: booking.time,
       service_address: booking.address,
       address: booking.address,
-      service_notes: booking.notes || 'None',
-      notes: booking.notes || 'None',
-      message: `Phone: ${booking.phone} | Email: ${booking.email} | Address: ${booking.address}`,
-      manage_url: `${window.location.origin}/manage-booking`,
-      subject: `✨ New Booking: ${booking.service} - ${booking.name}`,
+      service_notes: booking.notes || 'None provided',
+      notes: booking.notes || 'None provided',
+      message: `NEW CLIENT REQUEST:\n• Name: ${booking.name}\n• Phone: ${booking.phone}\n• Email: ${booking.email}\n• Address: ${booking.address}\n• Home Size: ${booking.bedrooms} Bed, ${booking.bathrooms} Bath\n• Service: ${booking.service}\n• Date: ${booking.date} at ${booking.time}`,
+      manage_url: `${window.location.origin}/admin`,
+      subject: `🔔 NEW BOOKING REQUEST from ${booking.name} (${booking.date} at ${booking.time})`,
     };
 
     await emailjs.send(SERVICE_ID, BOOKING_TEMPLATE_ID, templateParams, PUBLIC_KEY);
@@ -61,7 +61,7 @@ export async function sendBookingEmail(booking: BookingFormData): Promise<boolea
   }
 }
 
-/** Send an initial booking receipt email to the Client upon submitting form */
+/** 1º E-mail para o CLIENTE: Recibo de solicitação recebida (Aguardando orçamento do ADM) */
 export async function sendClientReceiptEmail(booking: BookingFormData, bookingId: string): Promise<boolean> {
   if (!isEmailConfigured) {
     return false;
@@ -71,7 +71,7 @@ export async function sendClientReceiptEmail(booking: BookingFormData, bookingId
     const manageUrl = `${window.location.origin}/manage-booking?id=${bookingId}`;
     const templateParams = {
       to_name: booking.name,
-      to_email: booking.email,
+      to_email: booking.email, // Arrives at Client's Email
       client_name: booking.name,
       name: booking.name,
       client_email: booking.email,
@@ -86,14 +86,15 @@ export async function sendClientReceiptEmail(booking: BookingFormData, bookingId
       time: booking.time,
       service_address: booking.address,
       address: booking.address,
-      home_size: `${booking.bedrooms} Bed, ${booking.bathrooms} Bath`,
+      home_size: `${booking.bedrooms} Bedroom(s), ${booking.bathrooms} Bathroom(s)`,
       selected_extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
       extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
-      final_price: `$${booking.estimatedPrice}`,
-      estimated_price: `$${booking.estimatedPrice}`,
-      price: `$${booking.estimatedPrice}`,
+      final_price: 'Quote Under Review (Our team will send your customized price shortly)',
+      estimated_price: 'Pending Review',
+      price: 'Pending Review',
       manage_url: manageUrl,
-      subject: `✨ Booking Request Received: ${booking.service} with LUXE A&P Cleaning`,
+      message: `Thank you for choosing LUXE A&P Cleaning! We have received your booking request for ${booking.service} on ${booking.date} at ${booking.time}. Our team is reviewing your home specifications and will send your personalized quote shortly.`,
+      subject: `✨ We Received Your Booking Request! — LUXE A&P Cleaning`,
     };
 
     await emailjs.send(SERVICE_ID, CONFIRM_TEMPLATE_ID, templateParams, PUBLIC_KEY);
@@ -104,7 +105,7 @@ export async function sendClientReceiptEmail(booking: BookingFormData, bookingId
   }
 }
 
-/** Send an official appointment confirmation email to the Client */
+/** 2º E-mail para o CLIENTE: Enviado pelo ADM quando define o orçamento e confirma */
 export async function sendClientConfirmationEmail(booking: Booking): Promise<boolean> {
   if (!isEmailConfigured) {
     return false;
@@ -116,7 +117,7 @@ export async function sendClientConfirmationEmail(booking: Booking): Promise<boo
 
     const templateParams = {
       to_name: booking.name,
-      to_email: booking.email,
+      to_email: booking.email, // Arrives at Client's Email with the ADM price
       client_name: booking.name,
       name: booking.name,
       client_email: booking.email,
@@ -131,14 +132,15 @@ export async function sendClientConfirmationEmail(booking: Booking): Promise<boo
       time: booking.time,
       service_address: booking.address,
       address: booking.address,
-      home_size: `${booking.bedrooms || 1} Bed, ${booking.bathrooms || 1} Bath`,
+      home_size: `${booking.bedrooms || 1} Bedroom(s), ${booking.bathrooms || 1} Bathroom(s)`,
       selected_extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
       extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
       final_price: `$${quotePrice}`,
       estimated_price: `$${quotePrice}`,
       price: `$${quotePrice}`,
       manage_url: manageUrl,
-      subject: `✅ Booking Confirmed ($${quotePrice}): ${booking.service} with LUXE A&P Cleaning`,
+      message: `Your customized quote for ${booking.service} on ${booking.date} at ${booking.time} is $${quotePrice}. Your appointment has been officially confirmed!`,
+      subject: `✅ Booking Confirmed & Official Quote ($${quotePrice}) — LUXE A&P Cleaning`,
     };
 
     await emailjs.send(SERVICE_ID, CONFIRM_TEMPLATE_ID, templateParams, PUBLIC_KEY);

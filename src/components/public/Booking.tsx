@@ -12,6 +12,7 @@ import {
   Plus,
   Check,
   CalendarCheck,
+  AlertCircle,
 } from 'lucide-react';
 import {
   SERVICES,
@@ -74,6 +75,71 @@ const DAY_KEYS: (keyof ScheduleConfig['workDays'])[] = [
   'saturday',
 ];
 
+const DAY_NAMES_EN = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
+
+/** Helper to check if a specific date is closed or blocked */
+function getDateAvailability(dateStr: string, config: ScheduleConfig | null): { unavailable: boolean; reason?: string } {
+  if (!dateStr) return { unavailable: false };
+  const cleanDate = normalizeDate(dateStr);
+  const d = new Date(cleanDate + 'T12:00:00');
+  if (isNaN(d.getTime())) {
+    return { unavailable: true, reason: 'Invalid date format' };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (d < today) {
+    return { unavailable: true, reason: 'Please choose a future date' };
+  }
+
+  if (config) {
+    if (config.blockedDates?.includes(cleanDate)) {
+      return {
+        unavailable: true,
+        reason: 'This date is currently blocked on our calendar and unavailable for appointments.',
+      };
+    }
+    const dayIndex = d.getDay();
+    const dayKey = DAY_KEYS[dayIndex];
+    if (config.workDays && config.workDays[dayKey] === false) {
+      const dayName = DAY_NAMES_EN[dayIndex];
+      return {
+        unavailable: true,
+        reason: `Our team is closed on ${dayName}s. Please choose an open day of the week.`,
+      };
+    }
+  }
+
+  return { unavailable: false };
+}
+
+/** Helper to find the first open business day starting from tomorrow */
+function findFirstOpenDate(config: ScheduleConfig): string {
+  const cur = new Date();
+  cur.setDate(cur.getDate() + 1);
+
+  for (let i = 0; i < 21; i++) {
+    const y = cur.getFullYear();
+    const m = String(cur.getMonth() + 1).padStart(2, '0');
+    const day = String(cur.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${day}`;
+    const status = getDateAvailability(dateStr, config);
+    if (!status.unavailable) {
+      return dateStr;
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return getLocalTomorrowString();
+}
+
 export default function Booking() {
   const ref = useRevealOnScroll();
   const [step, setStep] = useState<Step>(1);
@@ -87,13 +153,20 @@ export default function Booking() {
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
-  // Load dynamic time slots and pricing from admin config
+  // Load dynamic time slots and schedule config from admin
   useEffect(() => {
     getScheduleConfig()
       .then(config => {
         setScheduleConfig(config);
         const slots = generateTimeSlots(config);
         if (slots.length > 0) setTimeSlots(slots);
+
+        // If the default tomorrow date happens to be closed, find the first available open date
+        const initialStatus = getDateAvailability(INITIAL.date, config);
+        if (initialStatus.unavailable) {
+          const firstOpen = findFirstOpenDate(config);
+          setForm(prev => ({ ...prev, date: firstOpen }));
+        }
       })
       .catch(() => { /* keep fallback slots */ });
 
@@ -163,31 +236,21 @@ export default function Booking() {
       if (!form.date) {
         errs.date = 'Please select a date';
       } else {
-        const cleanDate = normalizeDate(form.date);
-        const selectedD = new Date(cleanDate + 'T12:00:00');
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (selectedD < today) {
-          errs.date = 'Please select a future date';
-        } else if (scheduleConfig) {
-          if (scheduleConfig.blockedDates?.includes(cleanDate)) {
-            errs.date = 'This date is unavailable for booking. Please select another date.';
-          } else {
-            const dayKey = DAY_KEYS[selectedD.getDay()];
-            if (scheduleConfig.workDays && scheduleConfig.workDays[dayKey] === false) {
-              errs.date = 'We are closed on this day of the week. Please select an available working day.';
-            }
-          }
+        const dateAvail = getDateAvailability(form.date, scheduleConfig);
+        if (dateAvail.unavailable) {
+          errs.date = dateAvail.reason || 'This date is unavailable for booking';
         }
       }
 
-      if (!form.time) {
-        errs.time = 'Please select an arrival time slot';
-      } else if (form.date && form.time) {
-        const isTaken = bookedSlots.some(b => normalizeTimeSlot(b) === normalizeTimeSlot(form.time));
-        if (isTaken) {
-          errs.time = 'This time slot is already reserved. Please select another time.';
+      const dateAvail = getDateAvailability(form.date, scheduleConfig);
+      if (!dateAvail.unavailable) {
+        if (!form.time) {
+          errs.time = 'Please select an arrival time slot';
+        } else if (form.date && form.time) {
+          const isTaken = bookedSlots.some(b => normalizeTimeSlot(b) === normalizeTimeSlot(form.time));
+          if (isTaken) {
+            errs.time = 'This time slot is already reserved. Please select another time.';
+          }
         }
       }
     }
@@ -479,61 +542,91 @@ export default function Booking() {
           )}
 
           {/* Step 2: Date & Time */}
-          {step === 2 && (
-            <div className="booking__step">
-              <h3 className="booking__step-title">Choose Preferred Date &amp; Time</h3>
-              <div className="booking__datetime">
-                <div className="form-group">
-                  <label className="form-label" htmlFor="booking-date" style={{ color: 'var(--color-gray-300)', marginBottom: 'var(--space-2)' }}>
-                    Select Cleaning Date
-                  </label>
-                  <div className="booking__date-wrapper">
-                    <input
-                      id="booking-date"
-                      type="date"
-                      className={`form-input form-input-dark booking__date-input ${errors.date ? 'error' : ''}`}
-                      value={form.date}
-                      min={minDate}
-                      onChange={e => set('date', e.target.value)}
-                    />
-                  </div>
-                  {errors.date && <p className="form-error">{errors.date}</p>}
-                </div>
+          {step === 2 && (() => {
+            const dateAvail = getDateAvailability(form.date, scheduleConfig);
 
-                <div className="form-group">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
-                    <label className="form-label" style={{ color: 'var(--color-gray-400)', margin: 0 }}>Select Arrival Time Slot</label>
-                    {loadingSlots && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gold)' }}>Checking availability...</span>}
+            return (
+              <div className="booking__step">
+                <h3 className="booking__step-title">Choose Preferred Date &amp; Time</h3>
+                <div className="booking__datetime">
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="booking-date" style={{ color: 'var(--color-gray-300)', marginBottom: 'var(--space-2)' }}>
+                      Select Cleaning Date
+                    </label>
+                    <div className="booking__date-wrapper">
+                      <input
+                        id="booking-date"
+                        type="date"
+                        className={`form-input form-input-dark booking__date-input ${errors.date || dateAvail.unavailable ? 'error' : ''}`}
+                        value={form.date}
+                        min={minDate}
+                        onChange={e => {
+                          const newDate = e.target.value;
+                          set('date', newDate);
+                          const st = getDateAvailability(newDate, scheduleConfig);
+                          if (st.unavailable) {
+                            set('time', '');
+                          }
+                        }}
+                      />
+                    </div>
+                    {errors.date && <p className="form-error">{errors.date}</p>}
                   </div>
-                  <div className="booking__time-grid">
-                    {timeSlots.map(slot => {
-                      const isBooked = bookedSlots.some(b => normalizeTimeSlot(b) === normalizeTimeSlot(slot));
-                      const isSelected = !isBooked && form.time && normalizeTimeSlot(form.time) === normalizeTimeSlot(slot);
-                      return (
-                        <button
-                          key={slot}
-                          type="button"
-                          disabled={isBooked}
-                          aria-disabled={isBooked}
-                          className={`booking__time-slot ${isSelected ? 'booking__time-slot--selected' : ''} ${isBooked ? 'booking__time-slot--booked' : ''}`}
-                          onClick={() => {
-                            if (!isBooked) {
-                              set('time', slot);
-                            }
-                          }}
-                          title={isBooked ? 'This slot has already been reserved' : slot}
-                        >
-                          <span>{slot}</span>
-                          {isBooked && <span className="booking__time-slot-tag">Reserved</span>}
-                        </button>
-                      );
-                    })}
+
+                  {/* Unavailable Day of Week / Blocked Date Alert */}
+                  {dateAvail.unavailable && (
+                    <div className="booking__unavailable-banner animate-fade-in">
+                      <AlertCircle size={20} className="booking__unavailable-icon" />
+                      <div>
+                        <strong>Day Unavailable for Appointments</strong>
+                        <p>{dateAvail.reason}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="form-group">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                      <label className="form-label" style={{ color: 'var(--color-gray-400)', margin: 0 }}>Select Arrival Time Slot</label>
+                      {loadingSlots && !dateAvail.unavailable && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gold)' }}>Checking availability...</span>}
+                    </div>
+
+                    {dateAvail.unavailable ? (
+                      <div className="booking__no-slots">
+                        <Clock size={28} />
+                        <p>No arrival time slots available for this day. Please select an available working day above.</p>
+                      </div>
+                    ) : (
+                      <div className="booking__time-grid">
+                        {timeSlots.map(slot => {
+                          const isBooked = bookedSlots.some(b => normalizeTimeSlot(b) === normalizeTimeSlot(slot));
+                          const isSelected = !isBooked && form.time && normalizeTimeSlot(form.time) === normalizeTimeSlot(slot);
+                          return (
+                            <button
+                              key={slot}
+                              type="button"
+                              disabled={isBooked}
+                              aria-disabled={isBooked}
+                              className={`booking__time-slot ${isSelected ? 'booking__time-slot--selected' : ''} ${isBooked ? 'booking__time-slot--booked' : ''}`}
+                              onClick={() => {
+                                if (!isBooked) {
+                                  set('time', slot);
+                                }
+                              }}
+                              title={isBooked ? 'This slot has already been reserved' : slot}
+                            >
+                              <span>{slot}</span>
+                              {isBooked && <span className="booking__time-slot-tag">Reserved</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {errors.time && !dateAvail.unavailable && <p className="form-error">{errors.time}</p>}
                   </div>
-                  {errors.time && <p className="form-error">{errors.time}</p>}
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Step 3: Personal info */}
           {step === 3 && (

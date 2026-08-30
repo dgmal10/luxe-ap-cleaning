@@ -234,13 +234,35 @@ export function normalizeTimeSlot(time: string): string {
    BOOKINGS
    ============================================================ */
 
-/** Create a booking with atomic double-booking check */
+/** Create a booking with atomic double-booking check and schedule availability check */
 export async function createBooking(data: Omit<Booking, 'id' | 'createdAt' | 'status'>): Promise<string> {
   const cleanDate = normalizeDate(data.date);
   const cleanTime = normalizeTimeSlot(data.time);
 
   if (!cleanDate || !cleanTime) {
     throw new Error('Date and time are required to book.');
+  }
+
+  // Validate working day of the week and blocked dates
+  const schedConfig = await getScheduleConfig();
+  if (schedConfig) {
+    if (schedConfig.blockedDates?.includes(cleanDate)) {
+      throw new Error('This date is blocked and unavailable for reservations.');
+    }
+    const dayKeys: (keyof ScheduleConfig['workDays'])[] = [
+      'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+    ];
+    const d = new Date(cleanDate + 'T12:00:00');
+    const dayKey = dayKeys[d.getDay()];
+    if (schedConfig.workDays && schedConfig.workDays[dayKey] === false) {
+      throw new Error('We are closed on this day of the week. Please choose an open day.');
+    }
   }
 
   if (!isFirebaseConfigured) {

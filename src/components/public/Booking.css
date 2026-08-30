@@ -475,6 +475,59 @@
   padding: 1px 5px;
 }
 
+/* Unavailable Date Banner & Empty Slots */
+.booking__unavailable-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: rgba(231, 76, 60, 0.12);
+  border: 1px solid rgba(231, 76, 60, 0.35);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-5);
+  color: #ff8577;
+}
+
+.booking__unavailable-icon {
+  color: #e74c3c;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.booking__unavailable-banner strong {
+  display: block;
+  font-size: var(--text-sm);
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.booking__unavailable-banner p {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.85);
+  line-height: var(--leading-relaxed);
+}
+
+.booking__no-slots {
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--color-gray-500);
+}
+
+.booking__no-slots svg {
+  margin-bottom: var(--space-2);
+  color: var(--color-gray-600);
+}
+
+.booking__no-slots p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-gray-400);
+}
+
 /* Step 3: Info grid */
 .booking__info-grid {
   display: grid;

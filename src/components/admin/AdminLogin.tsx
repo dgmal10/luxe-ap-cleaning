@@ -1,7 +1,7 @@
 /**
  * Admin Login page — email/password with forgot-password flow.
  */
-import { useState, useCallback, type FormEvent } from 'react';
+import { useState, useCallback, useEffect, type FormEvent } from 'react';
 import { Navigate, useNavigate, Link } from 'react-router-dom';
 import { Lock, Mail, Eye, EyeOff, ArrowRight, KeyRound, CheckCircle, ArrowLeft, Home } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -15,8 +15,46 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [attempts, setAttempts] = useState(0);
-  const [locked, setLocked] = useState(false);
+
+  // Persistent brute force rate limiting
+  const MAX_ATTEMPTS = 5;
+  const [attempts, setAttempts] = useState(() => {
+    try {
+      return parseInt(sessionStorage.getItem('luxe_auth_attempts') || '0', 10) || 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  const [lockoutRemaining, setLockoutRemaining] = useState(() => {
+    try {
+      const lockUntil = parseInt(sessionStorage.getItem('luxe_auth_lockout_until') || '0', 10) || 0;
+      const remaining = Math.ceil((lockUntil - Date.now()) / 1000);
+      return remaining > 0 ? remaining : 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  // Countdown timer effect for lockout
+  useEffect(() => {
+    if (lockoutRemaining <= 0) return;
+    const timer = setInterval(() => {
+      setLockoutRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          try {
+            sessionStorage.removeItem('luxe_auth_lockout_until');
+          } catch {}
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lockoutRemaining]);
+
+  const locked = lockoutRemaining > 0;
 
   // Forgot password state
   const [showForgot, setShowForgot] = useState(false);
@@ -24,28 +62,39 @@ export default function AdminLogin() {
   const [resetSent, setResetSent] = useState(false);
   const [resetSubmitting, setResetSubmitting] = useState(false);
 
-  // Rate limiting: lock after 5 failed attempts for 60 seconds
-  const MAX_ATTEMPTS = 5;
-
   const handleLogin = useCallback(async (e: FormEvent) => {
     e.preventDefault();
     if (locked || isSubmitting) return;
     clearError();
 
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password) return;
+
     setIsSubmitting(true);
     try {
-      await login(email, password);
+      await login(cleanEmail, password);
+      // Reset attempts upon successful login
       setAttempts(0);
+      try {
+        sessionStorage.removeItem('luxe_auth_attempts');
+        sessionStorage.removeItem('luxe_auth_lockout_until');
+      } catch {}
       navigate('/admin', { replace: true });
     } catch {
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
+      try {
+        sessionStorage.setItem('luxe_auth_attempts', String(newAttempts));
+      } catch {}
+
       if (newAttempts >= MAX_ATTEMPTS) {
-        setLocked(true);
-        setTimeout(() => {
-          setLocked(false);
-          setAttempts(0);
-        }, 60_000);
+        // Lock for 60 seconds (or 120s if multiple lockouts)
+        const lockDurationSec = 60;
+        const lockUntil = Date.now() + lockDurationSec * 1000;
+        try {
+          sessionStorage.setItem('luxe_auth_lockout_until', String(lockUntil));
+        } catch {}
+        setLockoutRemaining(lockDurationSec);
       }
     } finally {
       setIsSubmitting(false);
@@ -234,7 +283,7 @@ export default function AdminLogin() {
 
             {locked && (
               <p className="admin-login__locked">
-                Muitas tentativas incorretas. Aguarde 60 segundos.
+                Acesso temporariamente bloqueado por excesso de tentativas. Aguarde <strong>{lockoutRemaining}s</strong> para tentar novamente.
               </p>
             )}
 

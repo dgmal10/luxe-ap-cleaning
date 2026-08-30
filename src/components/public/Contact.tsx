@@ -10,11 +10,17 @@ interface ContactForm {
   name: string;
   email: string;
   message: string;
+  fax_hp?: string; // Honeypot trap for spam bots
+}
+
+/** Sanitize input strings to prevent XSS / script injections */
+function sanitizeText(str: string): string {
+  return str.replace(/<[^>]*>?/gm, '').trim();
 }
 
 export default function Contact() {
   const ref = useRevealOnScroll();
-  const [form, setForm] = useState<ContactForm>({ name: '', email: '', message: '' });
+  const [form, setForm] = useState<ContactForm>({ name: '', email: '', message: '', fax_hp: '' });
   const [errors, setErrors] = useState<Partial<Record<keyof ContactForm, string>>>({});
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,13 +32,31 @@ export default function Contact() {
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    const errs: Partial<Record<keyof ContactForm, string>> = {};
 
-    if (!form.name.trim()) errs.name = 'Name is required';
-    if (!form.email.trim()) errs.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email';
-    if (!form.message.trim()) errs.message = 'Message is required';
-    else if (form.message.trim().length < 10) errs.message = 'Message too short (min 10 characters)';
+    // 1. Anti-bot Honeypot trap: If the hidden honeypot field is filled, silently ignore
+    if (form.fax_hp && form.fax_hp.trim().length > 0) {
+      setSubmitted(true);
+      return;
+    }
+
+    // 2. Client-side Flood / Rate-limit protection (10 seconds cooldown between submissions)
+    const lastSubmitTime = parseInt(sessionStorage.getItem('luxe_last_contact_submit') || '0', 10);
+    const now = Date.now();
+    if (now - lastSubmitTime < 10000) {
+      setErrors({ message: 'Please wait a few seconds before sending another message.' });
+      return;
+    }
+
+    const errs: Partial<Record<keyof ContactForm, string>> = {};
+    const cleanName = sanitizeText(form.name);
+    const cleanEmail = sanitizeText(form.email);
+    const cleanMessage = sanitizeText(form.message);
+
+    if (!cleanName) errs.name = 'Name is required';
+    if (!cleanEmail) errs.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) errs.email = 'Invalid email';
+    if (!cleanMessage) errs.message = 'Message is required';
+    else if (cleanMessage.length < 10) errs.message = 'Message too short (min 10 characters)';
 
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -40,15 +64,16 @@ export default function Contact() {
     setIsSubmitting(true);
     try {
       const contactPayload = {
-        name: form.name,
-        email: form.email,
-        message: form.message,
+        name: cleanName,
+        email: cleanEmail,
+        message: cleanMessage,
       };
 
       await Promise.allSettled([
         createMessage(contactPayload),
         sendContactEmail(contactPayload),
       ]);
+      sessionStorage.setItem('luxe_last_contact_submit', String(Date.now()));
       setSubmitted(true);
     } catch (err) {
       console.error('Failed to send message:', err);
@@ -131,6 +156,20 @@ export default function Contact() {
               </div>
             ) : (
               <form className="contact__form" onSubmit={handleSubmit}>
+                {/* Honeypot field - Invisible to humans, catches automated spam bots */}
+                <div style={{ position: 'absolute', opacity: 0, zIndex: -1, pointerEvents: 'none', height: 0, overflow: 'hidden' }} aria-hidden="true">
+                  <label htmlFor="contact-fax">Fax</label>
+                  <input
+                    id="contact-fax"
+                    type="text"
+                    name="fax_hp"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={form.fax_hp || ''}
+                    onChange={e => set('fax_hp', e.target.value)}
+                  />
+                </div>
+
                 <div className="form-group">
                   <label className="form-label" htmlFor="contact-name">Your Name</label>
                   <input

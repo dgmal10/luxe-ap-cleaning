@@ -52,6 +52,12 @@ interface FormData {
   phone: string;
   address: string;
   notes: string;
+  website_hp?: string; // Bot honeypot trap
+}
+
+/** Sanitize input strings to remove any script or HTML injections */
+function sanitizeText(str: string): string {
+  return (str || '').replace(/<[^>]*>?/gm, '').trim();
 }
 
 const INITIAL: FormData = {
@@ -66,6 +72,7 @@ const INITIAL: FormData = {
   phone: '',
   address: '',
   notes: '',
+  website_hp: '',
 };
 
 const DAY_KEYS: (keyof ScheduleConfig['workDays'])[] = [
@@ -301,6 +308,24 @@ export default function Booking() {
 
   const handleSubmit = useCallback(async () => {
     if (!validateStep()) return;
+
+    // 1. Anti-bot honeypot check: If invisible field is populated, silently reject
+    if (form.website_hp && form.website_hp.trim().length > 0) {
+      setSubmitted(true);
+      return;
+    }
+
+    // 2. Flood / DDoS rate-limit protection (10 seconds cooldown)
+    const lastSubmitTime = parseInt(sessionStorage.getItem('luxe_last_booking_submit') || '0', 10);
+    const now = Date.now();
+    if (now - lastSubmitTime < 10000) {
+      setErrors(prev => ({
+        ...prev,
+        notes: 'Please wait a few seconds before submitting another reservation.',
+      }));
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const cleanDate = normalizeDate(form.date);
@@ -337,14 +362,15 @@ export default function Booking() {
         estimatedPrice,
         date: cleanDate,
         time: cleanTime,
-        name: form.name.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim(),
-        address: form.address.trim(),
-        notes: form.notes.trim(),
+        name: sanitizeText(form.name),
+        email: sanitizeText(form.email),
+        phone: sanitizeText(form.phone),
+        address: sanitizeText(form.address),
+        notes: sanitizeText(form.notes),
       };
 
       await createBooking(bookingPayload);
+      sessionStorage.setItem('luxe_last_booking_submit', String(Date.now()));
       sendBookingEmail(bookingPayload).catch(e => console.error('Email send error:', e));
       setSubmitted(true);
     } catch (err: unknown) {
@@ -642,6 +668,21 @@ export default function Booking() {
           {step === 3 && (
             <div className="booking__step">
               <h3 className="booking__step-title">Your Contact &amp; Property Information</h3>
+
+              {/* Honeypot field - Invisible to humans, catches automated spam bots */}
+              <div style={{ position: 'absolute', opacity: 0, zIndex: -1, pointerEvents: 'none', height: 0, overflow: 'hidden' }} aria-hidden="true">
+                <label htmlFor="booking-website">Website</label>
+                <input
+                  id="booking-website"
+                  type="text"
+                  name="website_hp"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={form.website_hp || ''}
+                  onChange={e => set('website_hp', e.target.value)}
+                />
+              </div>
+
               <div className="booking__info-grid">
                 <div className="form-group">
                   <label className="form-label" htmlFor="booking-name" style={{ color: 'var(--color-gray-400)' }}>Full Name</label>

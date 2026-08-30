@@ -38,7 +38,7 @@ import {
 } from '../../lib/firestore';
 import { generateTimeSlots, getPricingConfig, DEFAULT_PRICING } from '../../lib/firestore';
 import type { PricingConfig, ScheduleConfig } from '../../types';
-import { sendBookingEmail } from '../../lib/email';
+import { sendBookingEmail, sendClientReceiptEmail } from '../../lib/email';
 import './Booking.css';
 
 type Step = 1 | 2 | 3;
@@ -276,12 +276,27 @@ export default function Booking() {
       }
     }
     if (step === 3) {
-      if (!form.name.trim()) errs.name = 'Full name is required';
-      if (!form.email.trim()) errs.email = 'Email is required';
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email address';
-      if (!form.phone.trim()) errs.phone = 'Phone number is required';
-      else if (!/^[\d\s\-().+]{7,}$/.test(form.phone)) errs.phone = 'Invalid phone number';
-      if (!form.address.trim()) errs.address = 'Service address is required';
+      if (!form.name.trim()) {
+        errs.name = 'Full name is required';
+      }
+      
+      const cleanEmail = form.email.trim();
+      if (!cleanEmail) {
+        errs.email = 'Email address is required';
+      } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(cleanEmail)) {
+        errs.email = 'Please enter a valid email address (e.g. yourname@example.com)';
+      }
+
+      const cleanPhoneDigits = form.phone.replace(/\D/g, '');
+      if (!form.phone.trim()) {
+        errs.phone = 'Phone number is required';
+      } else if (cleanPhoneDigits.length < 10) {
+        errs.phone = 'Please enter a valid 10-digit phone number';
+      }
+
+      if (!form.address.trim()) {
+        errs.address = 'Service address is required';
+      }
     }
 
     setErrors(errs);
@@ -366,17 +381,21 @@ export default function Booking() {
         estimatedPrice,
         date: cleanDate,
         time: cleanTime,
-        name: sanitizeText(form.name),
-        email: sanitizeText(form.email),
-        phone: sanitizeText(form.phone),
-        address: sanitizeText(form.address),
-        notes: sanitizeText(form.notes),
+        name: sanitizeText(form.name).trim(),
+        email: sanitizeText(form.email).trim(),
+        phone: sanitizeText(form.phone).trim(),
+        address: sanitizeText(form.address).trim(),
+        notes: sanitizeText(form.notes).trim(),
       };
 
       const newId = await createBooking(bookingPayload);
       setCreatedBookingId(newId);
       sessionStorage.setItem('luxe_last_booking_submit', String(Date.now()));
-      sendBookingEmail(bookingPayload).catch(e => console.error('Email send error:', e));
+      
+      // Dispatch email to admin and instant receipt to client
+      sendBookingEmail(bookingPayload).catch(e => console.error('Admin email send error:', e));
+      sendClientReceiptEmail(bookingPayload, newId).catch(e => console.error('Client email send error:', e));
+      
       setSubmitted(true);
     } catch (err: unknown) {
       console.error('Failed to submit booking:', err);

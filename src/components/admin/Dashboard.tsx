@@ -18,7 +18,7 @@ import {
   Calendar,
   Filter,
   DollarSign,
-  Send,
+  MessageCircle,
   MessageSquare as SmsIcon,
   Sparkles,
   BedDouble,
@@ -569,8 +569,59 @@ export default function Dashboard() {
                             </button>
                           </div>
                           <span className="dashboard__quote-hint">
-                            (Base sugerida pelo sistema: ${booking.estimatedPrice || currentPrice})
+                            (Base sugerida: ${booking.estimatedPrice || currentPrice})
                           </span>
+                        </div>
+
+                        {/* Quick Price Presets and Stepper */}
+                        <div className="dashboard__quick-prices">
+                          <span className="dashboard__quick-prices-label">Valores Rápidos:</span>
+                          <div className="dashboard__chips-wrapper">
+                            {['130', '160', '190', '220', '250', '280', '320', '360', '400'].map(p => {
+                              const isSelected = currentPrice === Number(p);
+                              return (
+                                <button
+                                  key={p}
+                                  type="button"
+                                  className={`dashboard__price-chip ${isSelected ? 'dashboard__price-chip--active' : ''}`}
+                                  onClick={() => {
+                                    setEditingPrice(prev => ({ ...prev, [booking.id]: p }));
+                                    updateBookingPrice(booking.id, Number(p));
+                                    setSavedPriceId(booking.id);
+                                    setTimeout(() => setSavedPriceId(null), 2000);
+                                  }}
+                                >
+                                  ${p}
+                                </button>
+                              );
+                            })}
+                            <div className="dashboard__steppers">
+                              <button
+                                type="button"
+                                className="dashboard__stepper-btn"
+                                onClick={() => {
+                                  const nextP = Math.max(50, currentPrice - 10);
+                                  setEditingPrice(prev => ({ ...prev, [booking.id]: String(nextP) }));
+                                  updateBookingPrice(booking.id, nextP);
+                                }}
+                                title="Diminuir $10"
+                              >
+                                -$10
+                              </button>
+                              <button
+                                type="button"
+                                className="dashboard__stepper-btn"
+                                onClick={() => {
+                                  const nextP = currentPrice + 10;
+                                  setEditingPrice(prev => ({ ...prev, [booking.id]: String(nextP) }));
+                                  updateBookingPrice(booking.id, nextP);
+                                }}
+                                title="Aumentar $10"
+                              >
+                                +$10
+                              </button>
+                            </div>
+                          </div>
                         </div>
 
                         <div className="dashboard__quote-buttons">
@@ -589,13 +640,13 @@ export default function Dashboard() {
                             className="btn btn-sm btn-quote btn-whatsapp"
                             title="Enviar no WhatsApp"
                           >
-                            <Send size={14} />
+                            <MessageCircle size={14} />
                             💬 Enviar WhatsApp
                           </a>
                           <a
                             href={getEmailLink(booking)}
                             className="btn btn-sm btn-quote btn-email"
-                            title="Enviar E-mail formal"
+                            title="Enviar E-mail"
                           >
                             <Mail size={14} />
                             ✉️ Enviar E-mail

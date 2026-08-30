@@ -64,28 +64,46 @@ export default function PricingAdmin() {
     }
   };
 
-  const handleBasePriceChange = (serviceKey: string, val: string) => {
+  const handleBasePriceChange = async (serviceKey: string, val: string) => {
     const num = Number(val) || 0;
-    setConfig(prev => ({
-      ...prev,
+    const updated: PricingConfig = {
+      ...config,
       basePrices: {
-        ...prev.basePrices,
+        ...config.basePrices,
         [serviceKey]: num,
       },
-    }));
-    setSaved(false);
+    };
+    setConfig(updated);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    await updatePricingConfig(updated);
   };
 
-  const handleExtraPriceChange = (extraId: string, val: string) => {
+  const handleRoomPriceChange = async (field: 'pricePerBedroom' | 'pricePerBathroom', val: string) => {
     const num = Number(val) || 0;
-    setConfig(prev => ({
-      ...prev,
-      extras: prev.extras.map(e => (e.id === extraId ? { ...e, price: num } : e)),
-    }));
-    setSaved(false);
+    const updated: PricingConfig = {
+      ...config,
+      [field]: num,
+    };
+    setConfig(updated);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    await updatePricingConfig(updated);
   };
 
-  const handleAddExtra = () => {
+  const handleExtraPriceChange = async (extraId: string, val: string) => {
+    const num = Number(val) || 0;
+    const updated: PricingConfig = {
+      ...config,
+      extras: config.extras.map(e => (e.id === extraId ? { ...e, price: num } : e)),
+    };
+    setConfig(updated);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    await updatePricingConfig(updated);
+  };
+
+  const handleAddExtra = async () => {
     if (!newExtraName.trim() || !newExtraPrice) return;
     const newId = newExtraName.toLowerCase().replace(/[^a-z0-9]/g, '-');
     const newExtra = {
@@ -94,30 +112,53 @@ export default function PricingAdmin() {
       price: Number(newExtraPrice) || 30,
       description: newExtraDesc.trim() || 'Serviço adicional sob demanda',
     };
-    setConfig(prev => ({
-      ...prev,
-      extras: [...prev.extras, newExtra],
-    }));
+    const updated: PricingConfig = {
+      ...config,
+      extras: [...config.extras, newExtra],
+    };
+    setConfig(updated);
     setNewExtraName('');
     setNewExtraPrice('');
     setNewExtraDesc('');
-    setSaved(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    await updatePricingConfig(updated);
   };
 
-  const handleRemoveExtra = (extraId: string) => {
-    setConfig(prev => ({
-      ...prev,
-      extras: prev.extras.filter(e => e.id !== extraId),
-    }));
-    setSaved(false);
+  const handleRemoveExtra = async (extraId: string) => {
+    const updated: PricingConfig = {
+      ...config,
+      extras: config.extras.filter(e => e.id !== extraId),
+    };
+    setConfig(updated);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    await updatePricingConfig(updated);
   };
 
-  const handleRestoreDefaults = () => {
+  const handleRestoreDefaults = async () => {
     if (confirm('Deseja restaurar todos os valores para o padrão original?')) {
       setConfig(DEFAULT_PRICING);
-      setSaved(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+      await updatePricingConfig(DEFAULT_PRICING);
     }
   };
+
+  // Live Simulator state for testing room pricing combinations
+  const [simService, setSimService] = useState('deep');
+  const [simBeds, setSimBeds] = useState(2);
+  const [simBaths, setSimBaths] = useState(2);
+  const [simExtras, setSimExtras] = useState<string[]>([]);
+
+  const simBase = config.basePrices?.[simService] ?? DEFAULT_PRICING.basePrices[simService] ?? 150;
+  const simBedAdd = Math.max(0, simBeds - 1) * (config.pricePerBedroom ?? 25);
+  const simBathAdd = Math.max(0, simBaths - 1) * (config.pricePerBathroom ?? 30);
+  const simExtrasTotal = simExtras.reduce((sum, eId) => {
+    const ex = config.extras.find(e => e.id === eId);
+    return sum + (ex ? ex.price : 0);
+  }, 0);
+  const simTotal = simBase + simBedAdd + simBathAdd + simExtrasTotal;
 
   if (loading) {
     return (
@@ -231,10 +272,7 @@ export default function PricingAdmin() {
                   type="number"
                   className="pricing-admin__input"
                   value={config.pricePerBedroom}
-                  onChange={e => {
-                    setConfig({ ...config, pricePerBedroom: Number(e.target.value) || 0 });
-                    setSaved(false);
-                  }}
+                  onChange={e => handleRoomPriceChange('pricePerBedroom', e.target.value)}
                   min="0"
                   step="5"
                 />
@@ -255,16 +293,113 @@ export default function PricingAdmin() {
                   type="number"
                   className="pricing-admin__input"
                   value={config.pricePerBathroom}
-                  onChange={e => {
-                    setConfig({ ...config, pricePerBathroom: Number(e.target.value) || 0 });
-                    setSaved(false);
-                  }}
+                  onChange={e => handleRoomPriceChange('pricePerBathroom', e.target.value)}
                   min="0"
                   step="5"
                 />
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Live Simulator Card */}
+        <div className="pricing-admin__card pricing-admin__card--full" style={{ background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.06) 0%, rgba(20, 20, 20, 0.8) 100%)', borderColor: 'rgba(212, 175, 55, 0.3)' }}>
+          <h2 className="pricing-admin__card-title">
+            <Sparkles size={20} />
+            Simulador de Orçamento (Sugestão de Base)
+          </h2>
+          <p className="pricing-admin__card-desc">
+            Teste como o sistema calcula a sugestão de valor para cada imóvel com base nos cômodos e adicionais configurados acima. No Painel de Agendamentos, você sempre pode ajustar o valor final antes de enviar para o cliente.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)', margin: 'var(--space-4) 0', padding: 'var(--space-4)', background: 'rgba(0,0,0,0.25)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)', marginBottom: '4px' }}>Tipo de Serviço</label>
+              <select
+                className="pricing-admin__input"
+                style={{ width: '100%', textAlign: 'left', padding: '6px 10px', height: '38px' }}
+                value={simService}
+                onChange={e => setSimService(e.target.value)}
+              >
+                {Object.keys(SERVICE_NAMES).map(k => (
+                  <option key={k} value={k}>{SERVICE_NAMES[k].name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)', marginBottom: '4px' }}>Quartos ({simBeds})</label>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {[1, 2, 3, 4, 5].map(b => (
+                  <button
+                    key={b}
+                    type="button"
+                    style={{ flex: 1, padding: '6px 0', fontSize: '12px', fontWeight: 600, background: simBeds === b ? 'var(--color-gold)' : 'rgba(255,255,255,0.05)', color: simBeds === b ? '#000' : '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', cursor: 'pointer' }}
+                    onClick={() => setSimBeds(b)}
+                  >
+                    {b}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)', marginBottom: '4px' }}>Banheiros ({simBaths})</label>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {[1, 2, 3, 4].map(b => (
+                  <button
+                    key={b}
+                    type="button"
+                    style={{ flex: 1, padding: '6px 0', fontSize: '12px', fontWeight: 600, background: simBaths === b ? 'var(--color-gold)' : 'rgba(255,255,255,0.05)', color: simBaths === b ? '#000' : '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', cursor: 'pointer' }}
+                    onClick={() => setSimBaths(b)}
+                  >
+                    {b}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: 'var(--color-gold-muted)', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: 'var(--radius-md)', padding: '10px' }}>
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-gold)', fontWeight: 600 }}>Sugestão Calculada</span>
+              <strong style={{ fontSize: '28px', color: 'var(--color-gold)', fontFamily: 'var(--font-heading)' }}>${simTotal}</strong>
+              <span style={{ fontSize: '10px', color: 'var(--color-gray-400)' }}>
+                (${simBase} base + ${simBedAdd} quartos + ${simBathAdd} banheiros{simExtrasTotal > 0 ? ` + $${simExtrasTotal} extras` : ''})
+              </span>
+            </div>
+          </div>
+
+          {/* Extras toggle in simulator */}
+          {config.extras && config.extras.length > 0 && (
+            <div style={{ marginTop: 'var(--space-2)' }}>
+              <label style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)', marginBottom: '6px' }}>Incluir Extras no Teste:</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {config.extras.map(ex => {
+                  const active = simExtras.includes(ex.id);
+                  return (
+                    <button
+                      key={ex.id}
+                      type="button"
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        background: active ? 'var(--color-gold)' : 'rgba(255,255,255,0.04)',
+                        color: active ? '#000' : 'var(--color-gray-300)',
+                        border: `1px solid ${active ? 'var(--color-gold)' : 'rgba(255,255,255,0.1)'}`,
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => {
+                        setSimExtras(prev => active ? prev.filter(id => id !== ex.id) : [...prev, ex.id]);
+                      }}
+                    >
+                      {ex.name} (+${ex.price})
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Extras / Add-ons */}
@@ -274,7 +409,7 @@ export default function PricingAdmin() {
             Serviços Extras / Opcionais (Add-ons)
           </h2>
           <p className="pricing-admin__card-desc">
-            Itens adicionais que o cliente pode marcar no momento do agendamento.
+            Itens adicionais que o cliente pode marcar no momento do agendamento (sem valores exibidos ao cliente).
           </p>
 
           <div className="pricing-admin__extras-table">

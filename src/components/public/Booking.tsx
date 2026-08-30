@@ -160,29 +160,14 @@ export default function Booking() {
     return Object.keys(errs).length === 0;
   }, [step, form, bookedSlots]);
 
-  const scrollToBookingTop = () => {
-    const el = document.getElementById('booking');
-    if (el) {
-      const headerOffset = 80;
-      const elementPosition = el.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
-  };
-
   const next = useCallback(() => {
     if (validateStep()) {
       setStep(s => Math.min(s + 1, 3) as Step);
-      setTimeout(scrollToBookingTop, 60);
     }
   }, [validateStep]);
 
   const prev = useCallback(() => {
     setStep(s => Math.max(s - 1, 1) as Step);
-    setTimeout(scrollToBookingTop, 60);
   }, []);
 
   const handleSubmit = useCallback(async () => {
@@ -350,7 +335,7 @@ export default function Booking() {
         <div className="booking__card reveal">
           {/* Step 1: Service + Home Details + Extras */}
           {step === 1 && (
-            <div className="booking__step animate-fade-in">
+            <div className="booking__step">
               <h3 className="booking__step-title">1. Select Cleaning Package</h3>
               <div className="booking__services-grid">
                 {SERVICES.map(service => (
@@ -446,7 +431,7 @@ export default function Booking() {
 
           {/* Step 2: Date & Time */}
           {step === 2 && (
-            <div className="booking__step animate-fade-in">
+            <div className="booking__step">
               <h3 className="booking__step-title">Choose Preferred Date &amp; Time</h3>
               <div className="booking__datetime">
                 <div className="form-group">
@@ -499,7 +484,7 @@ export default function Booking() {
 
           {/* Step 3: Personal info */}
           {step === 3 && (
-            <div className="booking__step animate-fade-in">
+            <div className="booking__step">
               <h3 className="booking__step-title">Your Contact &amp; Property Information</h3>
               <div className="booking__info-grid">
                 <div className="form-group">

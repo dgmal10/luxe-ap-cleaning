@@ -23,7 +23,7 @@ export async function sendBookingEmail(booking: BookingFormData): Promise<boolea
   try {
     const templateParams = {
       to_name: 'Ana Paula',
-      to_email: 'annapaulasoouza98@icloud.com',
+      to_email: 'luxeaepcleaning@gmail.com',
       client_name: booking.name,
       client_email: booking.email,
       client_phone: booking.phone,
@@ -114,7 +114,7 @@ export async function sendAdminCancellationAlert(booking: Booking, reason?: stri
   try {
     const templateParams = {
       to_name: 'Ana Paula',
-      to_email: 'annapaulasoouza98@icloud.com',
+      to_email: 'luxeaepcleaning@gmail.com',
       client_name: booking.name,
       client_email: booking.email,
       client_phone: booking.phone,
@@ -143,7 +143,7 @@ export async function sendContactEmail(contact: ContactFormData): Promise<boolea
   try {
     const templateParams = {
       to_name: 'Ana Paula',
-      to_email: 'annapaulasoouza98@icloud.com',
+      to_email: 'luxeaepcleaning@gmail.com',
       client_name: contact.name,
       client_email: contact.email,
       message_content: contact.message,

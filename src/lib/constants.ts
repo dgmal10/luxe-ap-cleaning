@@ -132,7 +132,7 @@ export const BUSINESS = {
   name: 'LUXE A&P Cleaning',
   tagline: 'Premium Residential Services',
   phone: '+1 (774) 360-4824',
-  email: 'annapaulasoouza98@icloud.com',
+  email: 'luxeaepcleaning@gmail.com',
   address: '123 Main Street',
   city: 'Worcester',
   state: 'MA',

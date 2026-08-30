@@ -13,10 +13,19 @@ const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'EyKqkTJBOSponl3xH
 
 export const isEmailConfigured = Boolean(SERVICE_ID && BOOKING_TEMPLATE_ID && PUBLIC_KEY);
 
+// Initialize EmailJS with public key
+if (PUBLIC_KEY) {
+  try {
+    emailjs.init({ publicKey: PUBLIC_KEY });
+  } catch (err) {
+    console.warn('[EmailJS] Initialization warning:', err);
+  }
+}
+
 /** Send a detailed new booking notification email to Admin */
 export async function sendBookingEmail(booking: BookingFormData): Promise<boolean> {
   if (!isEmailConfigured) {
-    console.info('[EmailJS] Keys not configured in .env. Skipping email delivery.');
+    console.info('[EmailJS] Keys not configured. Skipping email delivery.');
     return false;
   }
 
@@ -53,7 +62,10 @@ export async function sendBookingEmail(booking: BookingFormData): Promise<boolea
       subject: `🔔 NEW BOOKING REQUEST from ${booking.name} (${booking.date} at ${booking.time})`,
     };
 
-    await emailjs.send(SERVICE_ID, BOOKING_TEMPLATE_ID, templateParams, PUBLIC_KEY);
+    const res = await emailjs.send(SERVICE_ID, BOOKING_TEMPLATE_ID, templateParams, {
+      publicKey: PUBLIC_KEY,
+    });
+    console.log('[EmailJS] Admin email sent successfully:', res.status, res.text);
     return true;
   } catch (error) {
     console.error('[EmailJS] Failed to send booking email to admin:', error);
@@ -97,7 +109,10 @@ export async function sendClientReceiptEmail(booking: BookingFormData, bookingId
       subject: `✨ We Received Your Booking Request! — LUXE A&P Cleaning`,
     };
 
-    await emailjs.send(SERVICE_ID, CONFIRM_TEMPLATE_ID, templateParams, PUBLIC_KEY);
+    const res = await emailjs.send(SERVICE_ID, CONFIRM_TEMPLATE_ID, templateParams, {
+      publicKey: PUBLIC_KEY,
+    });
+    console.log('[EmailJS] Client receipt email sent successfully:', res.status, res.text);
     return true;
   } catch (error) {
     console.error('[EmailJS] Failed to send client receipt email:', error);
@@ -143,7 +158,10 @@ export async function sendClientConfirmationEmail(booking: Booking): Promise<boo
       subject: `✅ Booking Confirmed & Official Quote ($${quotePrice}) — LUXE A&P Cleaning`,
     };
 
-    await emailjs.send(SERVICE_ID, CONFIRM_TEMPLATE_ID, templateParams, PUBLIC_KEY);
+    const res = await emailjs.send(SERVICE_ID, CONFIRM_TEMPLATE_ID, templateParams, {
+      publicKey: PUBLIC_KEY,
+    });
+    console.log('[EmailJS] Client confirmation quote email sent successfully:', res.status, res.text);
     return true;
   } catch (error) {
     console.error('[EmailJS] Failed to send client confirmation email:', error);
@@ -176,7 +194,10 @@ export async function sendClientCancellationEmail(booking: Booking, reason?: str
       subject: `❌ Booking Cancellation: LUXE A&P Cleaning - ${booking.date}`,
     };
 
-    await emailjs.send(SERVICE_ID, CANCEL_TEMPLATE_ID, templateParams, PUBLIC_KEY);
+    const res = await emailjs.send(SERVICE_ID, CANCEL_TEMPLATE_ID, templateParams, {
+      publicKey: PUBLIC_KEY,
+    });
+    console.log('[EmailJS] Cancellation email sent:', res.status, res.text);
     return true;
   } catch (error) {
     console.error('[EmailJS] Failed to send client cancellation email:', error);
@@ -209,7 +230,10 @@ export async function sendAdminCancellationAlert(booking: Booking, reason?: stri
       subject: `⚠️ Customer Cancelled Booking: ${booking.name} (${booking.date} at ${booking.time})`,
     };
 
-    await emailjs.send(SERVICE_ID, BOOKING_TEMPLATE_ID, templateParams, PUBLIC_KEY);
+    const res = await emailjs.send(SERVICE_ID, BOOKING_TEMPLATE_ID, templateParams, {
+      publicKey: PUBLIC_KEY,
+    });
+    console.log('[EmailJS] Admin cancellation alert sent:', res.status, res.text);
     return true;
   } catch (error) {
     console.error('[EmailJS] Failed to send admin cancellation alert:', error);
@@ -220,7 +244,7 @@ export async function sendAdminCancellationAlert(booking: Booking, reason?: stri
 /** Send a contact form message email */
 export async function sendContactEmail(contact: ContactFormData): Promise<boolean> {
   if (!isEmailConfigured) {
-    console.info('[EmailJS] Keys not configured in .env. Skipping email delivery.');
+    console.info('[EmailJS] Keys not configured. Skipping email delivery.');
     return false;
   }
 
@@ -237,7 +261,10 @@ export async function sendContactEmail(contact: ContactFormData): Promise<boolea
       subject: `📬 New Contact Message from ${contact.name}`,
     };
 
-    await emailjs.send(SERVICE_ID, CONTACT_TEMPLATE_ID, templateParams, PUBLIC_KEY);
+    const res = await emailjs.send(SERVICE_ID, CONTACT_TEMPLATE_ID, templateParams, {
+      publicKey: PUBLIC_KEY,
+    });
+    console.log('[EmailJS] Contact email sent:', res.status, res.text);
     return true;
   } catch (error) {
     console.error('[EmailJS] Failed to send contact email:', error);

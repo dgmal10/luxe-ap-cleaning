@@ -40,12 +40,12 @@ export default function ManageBooking() {
       if (found) {
         setBooking(found);
       } else {
-        setError('Agendamento não encontrado. Verifique o código e tente novamente.');
+        setError('Appointment not found. Please check your reference code and try again.');
         setBooking(null);
       }
     } catch (err) {
       console.error('Error loading booking:', err);
-      setError('Ocorreu um erro ao carregar os dados do agendamento.');
+      setError('An error occurred while retrieving appointment details.');
     } finally {
       setLoading(false);
     }
@@ -67,12 +67,12 @@ export default function ManageBooking() {
       setCancelSuccess(true);
       setShowConfirmModal(false);
 
-      // Disparar e-mails de cancelamento em segundo plano
+      // Trigger background notification emails
       sendClientCancellationEmail(booking).catch(() => {});
       sendAdminCancellationAlert(booking).catch(() => {});
     } catch (err) {
       console.error('Failed to cancel booking:', err);
-      alert('Não foi possível cancelar o agendamento no momento. Por favor, entre em contato direto conosco.');
+      alert('Could not cancel your appointment at this time. Please contact us directly.');
     } finally {
       setIsCancelling(false);
     }
@@ -91,17 +91,17 @@ export default function ManageBooking() {
           <Link to="/" className="manage-booking__brand">
             <span className="gold-text">LUXE</span> A&amp;P
           </Link>
-          <h1 className="manage-booking__title">Gerenciar Agendamento</h1>
+          <h1 className="manage-booking__title">Manage Your Appointment</h1>
           <p className="manage-booking__subtitle">
-            Consulte os detalhes da sua reserva ou solicite o cancelamento a qualquer momento.
+            Review your reservation details or cancel your appointment at any time.
           </p>
         </div>
 
         {/* Search / Lookup Box */}
         {!booking && !loading && (
           <div className="manage-booking__card manage-booking__card--search animate-fade-in-up">
-            <h3>Localizar seu Agendamento</h3>
-            <p>Informe o código do agendamento que você recebeu por e-mail ou mensagem:</p>
+            <h3>Find Your Reservation</h3>
+            <p>Enter the booking reference key you received upon booking or in your confirmation:</p>
             <form
               onSubmit={e => {
                 e.preventDefault();
@@ -112,13 +112,13 @@ export default function ManageBooking() {
               <input
                 type="text"
                 className="form-input form-input-dark"
-                placeholder="Ex: abc123XYZ ou código do e-mail"
+                placeholder="Ex: abc123XYZ or reference key"
                 value={searchId}
                 onChange={e => setSearchId(e.target.value)}
                 required
               />
               <button type="submit" className="btn btn-primary" disabled={!searchId.trim()}>
-                Buscar Agendamento
+                Look Up Appointment
               </button>
             </form>
             {error && <p className="manage-booking__error">{error}</p>}
@@ -129,7 +129,7 @@ export default function ManageBooking() {
         {loading && (
           <div className="manage-booking__loading">
             <div className="spinner spinner-lg" style={{ color: 'var(--color-gold)' }} />
-            <p>Localizando agendamento...</p>
+            <p>Locating appointment details...</p>
           </div>
         )}
 
@@ -139,14 +139,14 @@ export default function ManageBooking() {
             {/* Status Header */}
             <div className="manage-booking__status-bar">
               <div>
-                <span className="manage-booking__ref">Reserva #{booking.id.slice(0, 8).toUpperCase()}</span>
+                <span className="manage-booking__ref">Booking #{booking.id.slice(0, 8).toUpperCase()}</span>
                 <h2 className="manage-booking__service-name">{booking.service}</h2>
               </div>
               <span className={`manage-booking__badge manage-booking__badge--${booking.status}`}>
-                {booking.status === 'confirmed' && '✅ Confirmado'}
-                {booking.status === 'pending' && '⏳ Aguardando Confirmação'}
-                {booking.status === 'cancelled' && '❌ Cancelado'}
-                {booking.status === 'completed' && '✨ Concluído'}
+                {booking.status === 'confirmed' && '✅ Confirmed'}
+                {booking.status === 'pending' && '⏳ Pending Review'}
+                {booking.status === 'cancelled' && '❌ Cancelled'}
+                {booking.status === 'completed' && '✨ Completed'}
               </span>
             </div>
 
@@ -155,8 +155,8 @@ export default function ManageBooking() {
               <div className="manage-booking__alert-success animate-fade-in">
                 <CheckCircle size={24} />
                 <div>
-                  <strong>Agendamento Cancelado com Sucesso!</strong>
-                  <p>Sua reserva foi cancelada e o horário foi liberado. Um e-mail de confirmação foi enviado para você.</p>
+                  <strong>Appointment Successfully Cancelled</strong>
+                  <p>Your reservation has been cancelled and your time slot has been released. A cancellation receipt has been logged.</p>
                 </div>
               </div>
             )}
@@ -166,15 +166,15 @@ export default function ManageBooking() {
               <div className="manage-booking__item">
                 <CalendarCheck size={18} className="manage-booking__icon" />
                 <div>
-                  <strong>Data e Horário</strong>
-                  <span>{booking.date} às {booking.time}</span>
+                  <strong>Date &amp; Time</strong>
+                  <span>{booking.date} at {booking.time}</span>
                 </div>
               </div>
 
               <div className="manage-booking__item">
                 <MapPin size={18} className="manage-booking__icon" />
                 <div>
-                  <strong>Endereço do Serviço</strong>
+                  <strong>Service Address</strong>
                   <span>{booking.address}</span>
                 </div>
               </div>
@@ -182,8 +182,8 @@ export default function ManageBooking() {
               <div className="manage-booking__item">
                 <BedDouble size={18} className="manage-booking__icon" />
                 <div>
-                  <strong>Especificações do Imóvel</strong>
-                  <span>{booking.bedrooms || 1} Quarto(s) • {booking.bathrooms || 1} Banheiro(s)</span>
+                  <strong>Home Specifications</strong>
+                  <span>{booking.bedrooms || 1} Bedroom(s) • {booking.bathrooms || 1} Bathroom(s)</span>
                 </div>
               </div>
 
@@ -191,7 +191,7 @@ export default function ManageBooking() {
                 <div className="manage-booking__item">
                   <Sparkles size={18} className="manage-booking__icon" />
                   <div>
-                    <strong>Serviços Opcionais</strong>
+                    <strong>Selected Add-ons</strong>
                     <span>{booking.extras.join(', ')}</span>
                   </div>
                 </div>
@@ -199,7 +199,7 @@ export default function ManageBooking() {
 
               {booking.finalPrice ? (
                 <div className="manage-booking__item manage-booking__item--highlight">
-                  <span className="manage-booking__price-label">Valor do Orçamento:</span>
+                  <span className="manage-booking__price-label">Confirmed Quote Price:</span>
                   <strong className="manage-booking__price-val">${booking.finalPrice}</strong>
                 </div>
               ) : null}
@@ -214,7 +214,7 @@ export default function ManageBooking() {
                   onClick={() => setShowConfirmModal(true)}
                 >
                   <XCircle size={16} />
-                  Cancelar este Agendamento
+                  Cancel this Appointment
                 </button>
               )}
 
@@ -225,12 +225,12 @@ export default function ManageBooking() {
                 className="btn btn-primary"
               >
                 <MessageCircle size={16} />
-                Falar com a Equipe no WhatsApp
+                Chat with Team on WhatsApp
               </a>
 
               <Link to="/" className="btn btn-outline-gold">
                 <ArrowLeft size={16} />
-                Voltar à Página Principal
+                Return to Homepage
               </Link>
             </div>
           </div>
@@ -241,9 +241,9 @@ export default function ManageBooking() {
           <div className="manage-booking__modal-backdrop animate-fade-in">
             <div className="manage-booking__modal animate-fade-in-up">
               <AlertTriangle size={42} className="manage-booking__modal-icon" />
-              <h3>Deseja realmente cancelar?</h3>
+              <h3>Are you sure you want to cancel?</h3>
               <p>
-                Ao confirmar, seu horário reservado para <strong>{booking?.date} às {booking?.time}</strong> será liberado no calendário.
+                By confirming, your reserved time slot on <strong>{booking?.date} at {booking?.time}</strong> will be released.
               </p>
               <div className="manage-booking__modal-actions">
                 <button
@@ -252,7 +252,7 @@ export default function ManageBooking() {
                   disabled={isCancelling}
                   onClick={handleCancelBooking}
                 >
-                  {isCancelling ? 'Cancelando...' : 'Sim, Cancelar Agendamento'}
+                  {isCancelling ? 'Cancelling...' : 'Yes, Cancel Appointment'}
                 </button>
                 <button
                   type="button"
@@ -260,7 +260,7 @@ export default function ManageBooking() {
                   disabled={isCancelling}
                   onClick={() => setShowConfirmModal(false)}
                 >
-                  Não, manter reserva
+                  No, Keep Reservation
                 </button>
               </div>
             </div>

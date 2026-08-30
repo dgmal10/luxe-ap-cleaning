@@ -14,11 +14,12 @@ import {
   DollarSign,
   Sparkles,
 } from 'lucide-react';
-import { SERVICES, BUSINESS, CLEANING_EXTRAS, calculateEstimatedPrice } from '../../lib/constants';
+import { SERVICES, BUSINESS, CLEANING_EXTRAS, BASE_PRICING } from '../../lib/constants';
 import { TIME_SLOTS as FALLBACK_TIME_SLOTS } from '../../lib/constants';
 import { useRevealOnScroll } from '../../hooks/useUtils';
 import { createBooking, getBookingsByDate } from '../../lib/firestore';
-import { getScheduleConfig, generateTimeSlots } from '../../lib/firestore';
+import { getScheduleConfig, generateTimeSlots, getPricingConfig, DEFAULT_PRICING } from '../../lib/firestore';
+import type { PricingConfig } from '../../types';
 import { sendBookingEmail } from '../../lib/email';
 import './Booking.css';
 
@@ -60,10 +61,11 @@ export default function Booking() {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeSlots, setTimeSlots] = useState<string[]>(FALLBACK_TIME_SLOTS);
+  const [pricingConfig, setPricingConfig] = useState<PricingConfig>(DEFAULT_PRICING);
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
-  // Load dynamic time slots from admin schedule config
+  // Load dynamic time slots and pricing from admin config
   useEffect(() => {
     getScheduleConfig()
       .then(config => {
@@ -71,6 +73,12 @@ export default function Booking() {
         if (slots.length > 0) setTimeSlots(slots);
       })
       .catch(() => { /* keep fallback slots */ });
+
+    getPricingConfig()
+      .then(cfg => {
+        if (cfg) setPricingConfig(cfg);
+      })
+      .catch(() => { /* keep default */ });
   }, []);
 
   // Check booked slots whenever date changes to prevent double-booking
@@ -111,12 +119,16 @@ export default function Booking() {
     });
   }, []);
 
-  const estimatedPrice = calculateEstimatedPrice(
-    form.service,
-    form.bedrooms,
-    form.bathrooms,
-    form.extras
-  );
+  const extrasList = pricingConfig.extras || CLEANING_EXTRAS;
+  const basePrice = pricingConfig.basePrices?.[form.service] ?? BASE_PRICING[form.service] ?? 140;
+  const extraBedsPrice = Math.max(0, form.bedrooms - 1) * (pricingConfig.pricePerBedroom ?? 25);
+  const extraBathsPrice = Math.max(0, form.bathrooms - 1) * (pricingConfig.pricePerBathroom ?? 30);
+  const extrasTotal = form.extras.reduce((sum, extraId) => {
+    const extra = extrasList.find(e => e.id === extraId);
+    return sum + (extra ? extra.price : 0);
+  }, 0);
+
+  const estimatedPrice = basePrice + extraBedsPrice + extraBathsPrice + extrasTotal;
 
   const validateStep = useCallback((): boolean => {
     const errs: Partial<Record<keyof FormData, string>> = {};
@@ -172,7 +184,7 @@ export default function Booking() {
 
       const serviceObj = SERVICES.find(s => s.id === form.service);
       const serviceName = serviceObj?.name || form.service;
-      const extraNames = form.extras.map(eId => CLEANING_EXTRAS.find(e => e.id === eId)?.name || eId);
+      const extraNames = form.extras.map(eId => extrasList.find(e => e.id === eId)?.name || eId);
 
       const bookingPayload = {
         service: serviceName,
@@ -386,7 +398,7 @@ export default function Booking() {
               <div className="booking__extras-section">
                 <h4 className="booking__subheading">3. Optional Add-ons &amp; Extras</h4>
                 <div className="booking__extras-grid">
-                  {CLEANING_EXTRAS.map(extra => {
+                  {extrasList.map(extra => {
                     const isSelected = form.extras.includes(extra.id);
                     return (
                       <button
@@ -552,7 +564,7 @@ export default function Booking() {
                   {form.extras.length > 0 && (
                     <div className="booking__summary-row">
                       <span>Add-ons:</span>
-                      <strong>{form.extras.map(eId => CLEANING_EXTRAS.find(e => e.id === eId)?.name).join(', ')}</strong>
+                      <strong>{form.extras.map(eId => extrasList.find(e => e.id === eId)?.name).filter(Boolean).join(', ')}</strong>
                     </div>
                   )}
                   <div className="booking__summary-row">

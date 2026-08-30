@@ -22,6 +22,7 @@ import type {
   Booking,
   ContactMessage,
   ScheduleConfig,
+  PricingConfig,
   GalleryItem,
 } from '../types';
 
@@ -367,6 +368,17 @@ const DEFAULT_SCHEDULE: ScheduleConfig = {
   endTime: '17:00',
   slotDuration: 60, // minutes
   blockedDates: [],
+  customSlots: [
+    '8:00 AM',
+    '9:00 AM',
+    '10:00 AM',
+    '11:00 AM',
+    '12:00 PM',
+    '1:00 PM',
+    '2:00 PM',
+    '3:00 PM',
+    '4:00 PM',
+  ],
 };
 
 /** Get schedule configuration */
@@ -380,7 +392,12 @@ export async function getScheduleConfig(): Promise<ScheduleConfig> {
     await setDoc(getScheduleDoc(), DEFAULT_SCHEDULE);
     return DEFAULT_SCHEDULE;
   }
-  return snap.data() as ScheduleConfig;
+  const data = snap.data() as ScheduleConfig;
+  return {
+    ...DEFAULT_SCHEDULE,
+    ...data,
+    customSlots: data.customSlots || DEFAULT_SCHEDULE.customSlots,
+  };
 }
 
 /** Update schedule configuration */
@@ -391,6 +408,67 @@ export async function updateScheduleConfig(config: ScheduleConfig): Promise<void
   }
 
   await setDoc(getScheduleDoc(), config);
+}
+
+/* ============================================================
+   PRICING CONFIG
+   ============================================================ */
+
+function getPricingDoc() {
+  return doc(db, 'config', 'pricing');
+}
+
+export const DEFAULT_PRICING: PricingConfig = {
+  basePrices: {
+    'standard': 140,
+    'deep': 210,
+    'move': 270,
+    'post-construction': 320,
+  },
+  pricePerBedroom: 25,
+  pricePerBathroom: 30,
+  extras: [
+    { id: 'oven', name: 'Inside Oven', price: 35, description: 'Deep degrease & bake-off interior' },
+    { id: 'fridge', name: 'Inside Fridge', price: 35, description: 'Disinfect shelves & drawers' },
+    { id: 'cabinets', name: 'Inside Cabinets', price: 35, description: 'Wipe & vacuum interior storage' },
+    { id: 'windows', name: 'Interior Windows', price: 40, description: 'Glass, sills & trim detailed' },
+    { id: 'pets', name: 'Pet Hair Treatment', price: 20, description: 'Specialized lint & fur removal' },
+  ],
+};
+
+/** Get pricing configuration from Firestore or LocalStorage */
+export async function getPricingConfig(): Promise<PricingConfig> {
+  if (!isFirebaseConfigured) {
+    return getLocal<PricingConfig>('luxe_pricing', DEFAULT_PRICING);
+  }
+
+  try {
+    const snap = await getDoc(getPricingDoc());
+    if (!snap.exists()) {
+      await setDoc(getPricingDoc(), DEFAULT_PRICING);
+      return DEFAULT_PRICING;
+    }
+    const data = snap.data() as PricingConfig;
+    return {
+      basePrices: { ...DEFAULT_PRICING.basePrices, ...data.basePrices },
+      pricePerBedroom: data.pricePerBedroom ?? DEFAULT_PRICING.pricePerBedroom,
+      pricePerBathroom: data.pricePerBathroom ?? DEFAULT_PRICING.pricePerBathroom,
+      extras: data.extras || DEFAULT_PRICING.extras,
+    };
+  } catch (err) {
+    console.error('Error loading pricing config:', err);
+    return DEFAULT_PRICING;
+  }
+}
+
+/** Update pricing configuration */
+export async function updatePricingConfig(config: PricingConfig): Promise<void> {
+  if (!isFirebaseConfigured) {
+    setLocal('luxe_pricing', config);
+    return;
+  }
+
+  await setDoc(getPricingDoc(), config);
 }
 
 /* ============================================================
@@ -448,6 +526,10 @@ export async function deleteGalleryImage(id: string): Promise<void> {
 
 /** Generate available time slots from schedule config */
 export function generateTimeSlots(config: ScheduleConfig): string[] {
+  if (config.customSlots && config.customSlots.length > 0) {
+    return config.customSlots;
+  }
+
   const slots: string[] = [];
   const [startH, startM] = config.startTime.split(':').map(Number);
   const [endH, endM] = config.endTime.split(':').map(Number);

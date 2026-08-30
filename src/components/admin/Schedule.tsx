@@ -26,8 +26,6 @@ const DAYS: { key: keyof ScheduleConfig['workDays']; label: string; short: strin
   { key: 'sunday', label: 'Domingo', short: 'Dom' },
 ];
 
-const SLOT_OPTIONS = [30, 60, 90, 120];
-
 export default function Schedule() {
   const [config, setConfig] = useState<ScheduleConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,6 +91,63 @@ export default function Schedule() {
     setSaved(false);
   };
 
+  const [newSlotTime, setNewSlotTime] = useState('');
+
+  const formatTimeToAmPm = (time24: string) => {
+    if (!time24) return '';
+    const [hStr, mStr] = time24.split(':');
+    let h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10) || 0;
+    const period = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    h = h ? h : 12; // '0' should be '12'
+    return `${h}:${m.toString().padStart(2, '0')} ${period}`;
+  };
+
+  const addCustomSlot = () => {
+    if (!config || !newSlotTime) return;
+    const formatted = formatTimeToAmPm(newSlotTime);
+    const current = config.customSlots || generateTimeSlots(config);
+    if (current.includes(formatted)) return;
+    
+    setConfig({
+      ...config,
+      customSlots: [...current, formatted],
+    });
+    setNewSlotTime('');
+    setSaved(false);
+  };
+
+  const removeCustomSlot = (slotToRemove: string) => {
+    if (!config) return;
+    const current = config.customSlots || generateTimeSlots(config);
+    setConfig({
+      ...config,
+      customSlots: current.filter(s => s !== slotToRemove),
+    });
+    setSaved(false);
+  };
+
+  const restoreDefaultSlots = () => {
+    if (!config) return;
+    const defaults = [
+      '8:00 AM',
+      '9:00 AM',
+      '10:00 AM',
+      '11:00 AM',
+      '12:00 PM',
+      '1:00 PM',
+      '2:00 PM',
+      '3:00 PM',
+      '4:00 PM',
+    ];
+    setConfig({
+      ...config,
+      customSlots: defaults,
+    });
+    setSaved(false);
+  };
+
   if (loading || !config) {
     return (
       <div className="schedule">
@@ -103,7 +158,7 @@ export default function Schedule() {
     );
   }
 
-  const previewSlots = generateTimeSlots(config);
+  const activeSlots = config.customSlots || generateTimeSlots(config);
 
   return (
     <div className="schedule">
@@ -111,7 +166,7 @@ export default function Schedule() {
       <div className="schedule__header">
         <div>
           <h1 className="schedule__title">Configurações de Agenda</h1>
-          <p className="schedule__subtitle">Gerencie sua disponibilidade e horários de atendimento</p>
+          <p className="schedule__subtitle">Gerencie sua disponibilidade, dias e horários de agendamento</p>
         </div>
         <div className="schedule__header-actions">
           <button className="schedule__refresh" onClick={fetchConfig} aria-label="Atualizar">
@@ -169,60 +224,58 @@ export default function Schedule() {
           </div>
         </div>
 
-        {/* Work Hours */}
+        {/* Custom Time Slots Manager */}
         <div className="schedule__card">
           <h2 className="schedule__card-title">
             <Clock size={20} />
-            Horário de Trabalho
+            Horários Disponíveis ({activeSlots.length})
           </h2>
           <p className="schedule__card-desc">
-            Defina o horário de início, término e duração dos agendamentos.
+            Adicione ou remova os horários exatos que aparecem para os clientes agendarem.
           </p>
-          <div className="schedule__hours">
-            <div className="schedule__hour-field">
-              <label className="schedule__label">Horário Inicial</label>
-              <input
-                type="time"
-                className="schedule__input"
-                value={config.startTime}
-                onChange={e => { setConfig({ ...config, startTime: e.target.value }); setSaved(false); }}
-              />
-            </div>
-            <div className="schedule__hour-field">
-              <label className="schedule__label">Horário Final</label>
-              <input
-                type="time"
-                className="schedule__input"
-                value={config.endTime}
-                onChange={e => { setConfig({ ...config, endTime: e.target.value }); setSaved(false); }}
-              />
-            </div>
-            <div className="schedule__hour-field">
-              <label className="schedule__label">Duração do Horário</label>
-              <select
-                className="schedule__input schedule__select"
-                value={config.slotDuration}
-                onChange={e => { setConfig({ ...config, slotDuration: Number(e.target.value) }); setSaved(false); }}
-              >
-                {SLOT_OPTIONS.map(m => (
-                  <option key={m} value={m}>{m} min</option>
-                ))}
-              </select>
-            </div>
+
+          <div className="schedule__slot-add-bar">
+            <input
+              type="time"
+              className="schedule__input"
+              value={newSlotTime}
+              onChange={e => setNewSlotTime(e.target.value)}
+            />
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={addCustomSlot}
+              disabled={!newSlotTime}
+            >
+              <Plus size={14} />
+              Adicionar Horário
+            </button>
           </div>
 
-          {/* Preview */}
-          <div className="schedule__preview">
-            <label className="schedule__label">Prévia — Horários Gerados</label>
-            <div className="schedule__slots-preview">
-              {previewSlots.length > 0 ? (
-                previewSlots.map(slot => (
-                  <span key={slot} className="schedule__slot-chip">{slot}</span>
-                ))
-              ) : (
-                <span className="schedule__no-slots">Nenhum horário disponível com a configuração atual</span>
-              )}
-            </div>
+          <div className="schedule__slots-manage-list">
+            {activeSlots.map(slot => (
+              <div key={slot} className="schedule__slot-manage-chip">
+                <span>{slot}</span>
+                <button
+                  type="button"
+                  className="schedule__slot-remove-btn"
+                  onClick={() => removeCustomSlot(slot)}
+                  title={`Remover horário ${slot}`}
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="schedule__slot-footer">
+            <button
+              type="button"
+              className="btn btn-outline-gold btn-sm"
+              onClick={restoreDefaultSlots}
+            >
+              <RefreshCw size={13} />
+              Restaurar Horários Padrão
+            </button>
           </div>
         </div>
 

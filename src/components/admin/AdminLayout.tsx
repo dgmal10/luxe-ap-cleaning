@@ -8,6 +8,7 @@ import {
   MessageSquare,
   CalendarCog,
   ImagePlus,
+  Tag,
   LogOut,
   Menu,
   X,
@@ -20,7 +21,8 @@ import './AdminLayout.css';
 const NAV_ITEMS = [
   { label: 'Painel', path: '/admin', icon: <LayoutDashboard size={20} />, end: true },
   { label: 'Mensagens', path: '/admin/messages', icon: <MessageSquare size={20} /> },
-  { label: 'Agenda', path: '/admin/schedule', icon: <CalendarCog size={20} /> },
+  { label: 'Preços & Serviços', path: '/admin/pricing', icon: <Tag size={20} /> },
+  { label: 'Agenda & Horários', path: '/admin/schedule', icon: <CalendarCog size={20} /> },
   { label: 'Galeria', path: '/admin/gallery', icon: <ImagePlus size={20} /> },
 ];
 

@@ -38,16 +38,43 @@
   opacity: 1;
 }
 
+.services__card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
 .services__card-icon {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--color-gold-muted);
   border-radius: var(--radius-lg);
   color: var(--color-gold);
-  margin-bottom: var(--space-5);
+}
+
+.services__card-price {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  background: var(--color-gold-muted);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: var(--radius-full);
+  padding: 5px 12px;
+  color: var(--color-gray-300);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.services__card-price strong {
+  font-family: var(--font-heading);
+  font-size: var(--text-base);
+  color: var(--color-gold);
+  font-weight: 700;
 }
 
 .services__card-title {

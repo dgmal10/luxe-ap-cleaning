@@ -17,6 +17,7 @@ const AdminLogin = lazy(() => import('./components/admin/AdminLogin'));
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
 const Dashboard = lazy(() => import('./components/admin/Dashboard'));
 const Messages = lazy(() => import('./components/admin/Messages'));
+const PricingAdmin = lazy(() => import('./components/admin/PricingAdmin'));
 const Schedule = lazy(() => import('./components/admin/Schedule'));
 const GalleryAdmin = lazy(() => import('./components/admin/GalleryAdmin'));
 const PrivacyPolicy = lazy(() => import('./components/public/PrivacyPolicy'));
@@ -112,6 +113,7 @@ export default function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="messages" element={<Messages />} />
+            <Route path="pricing" element={<PricingAdmin />} />
             <Route path="schedule" element={<Schedule />} />
             <Route path="gallery" element={<GalleryAdmin />} />
           </Route>

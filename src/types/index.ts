@@ -93,6 +93,20 @@ export interface ScheduleConfig {
   endTime: string;     // e.g. "17:00"
   slotDuration: number; // in minutes
   blockedDates: string[]; // YYYY-MM-DD
+  customSlots?: string[]; // Array of custom time slots e.g. ["8:00 AM", "10:30 AM", "1:00 PM"]
+}
+
+/** Pricing configuration stored in Firestore */
+export interface PricingConfig {
+  basePrices: Record<string, number>;
+  pricePerBedroom: number;
+  pricePerBathroom: number;
+  extras: {
+    id: string;
+    name: string;
+    price: number;
+    description: string;
+  }[];
 }
 
 /** Gallery item stored in Firestore */

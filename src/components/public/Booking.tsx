@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Clock,
   User,
@@ -13,6 +14,8 @@ import {
   Check,
   CalendarCheck,
   AlertCircle,
+  Copy,
+  ExternalLink,
 } from 'lucide-react';
 import {
   SERVICES,
@@ -158,6 +161,7 @@ export default function Booking() {
   const [form, setForm] = useState<FormData>(INITIAL);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [createdBookingId, setCreatedBookingId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeSlots, setTimeSlots] = useState<string[]>(FALLBACK_TIME_SLOTS);
   const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig | null>(null);
@@ -369,7 +373,8 @@ export default function Booking() {
         notes: sanitizeText(form.notes),
       };
 
-      await createBooking(bookingPayload);
+      const newId = await createBooking(bookingPayload);
+      setCreatedBookingId(newId);
       sessionStorage.setItem('luxe_last_booking_submit', String(Date.now()));
       sendBookingEmail(bookingPayload).catch(e => console.error('Email send error:', e));
       setSubmitted(true);
@@ -404,7 +409,16 @@ export default function Booking() {
     setStep(1);
     setErrors({});
     setSubmitted(false);
+    setCreatedBookingId('');
+    setCopiedKey(false);
   }, []);
+
+  const [copiedKey, setCopiedKey] = useState(false);
+  const handleCopyKey = (id: string) => {
+    navigator.clipboard.writeText(id);
+    setCopiedKey(true);
+    setTimeout(() => setCopiedKey(false), 3000);
+  };
 
   if (submitted) {
     return (
@@ -420,6 +434,47 @@ export default function Booking() {
               <strong>{selectedService?.name}</strong> on <strong>{form.date}</strong> at{' '}
               <strong>{form.time}</strong>.
             </p>
+
+            {createdBookingId && (
+              <div
+                style={{
+                  background: 'rgba(212, 175, 55, 0.08)',
+                  border: '1px solid rgba(212, 175, 55, 0.3)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '16px',
+                  margin: '20px auto',
+                  maxWidth: '480px',
+                  textAlign: 'center',
+                }}
+              >
+                <span style={{ fontSize: '11px', color: 'var(--color-gray-400)', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '4px' }}>
+                  Your Booking Reference Key
+                </span>
+                <strong style={{ fontSize: '18px', color: 'var(--color-gold)', fontFamily: 'monospace', letterSpacing: '1px', display: 'block', marginBottom: '10px' }}>
+                  {createdBookingId}
+                </strong>
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn btn-outline-gold btn-sm"
+                    style={{ fontSize: '12px', padding: '5px 12px' }}
+                    onClick={() => handleCopyKey(createdBookingId)}
+                  >
+                    {copiedKey ? <Check size={13} /> : <Copy size={13} />}
+                    {copiedKey ? 'Key Copied!' : 'Copy Key'}
+                  </button>
+                  <Link
+                    to={`/manage-booking?id=${createdBookingId}`}
+                    className="btn btn-primary btn-sm"
+                    style={{ fontSize: '12px', padding: '5px 12px' }}
+                  >
+                    <ExternalLink size={13} />
+                    View &amp; Manage Reservation
+                  </Link>
+                </div>
+              </div>
+            )}
+
             <p className="booking__success-sub">
               Our team is reviewing your home specifications ({form.bedrooms} Bed, {form.bathrooms} Bath) and will send your customized quote and confirmation details shortly via WhatsApp, SMS / iMessage, or Email.
             </p>

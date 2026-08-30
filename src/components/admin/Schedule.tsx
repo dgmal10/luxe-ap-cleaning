@@ -62,33 +62,42 @@ export default function Schedule() {
     }
   };
 
-  const toggleDay = (day: keyof ScheduleConfig['workDays']) => {
+  const toggleDay = async (day: keyof ScheduleConfig['workDays']) => {
     if (!config) return;
-    setConfig({
+    const updated: ScheduleConfig = {
       ...config,
       workDays: { ...config.workDays, [day]: !config.workDays[day] },
-    });
-    setSaved(false);
+    };
+    setConfig(updated);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+    await updateScheduleConfig(updated);
   };
 
-  const addBlockedDate = () => {
+  const addBlockedDate = async () => {
     if (!config || !newBlockedDate) return;
     if (config.blockedDates.includes(newBlockedDate)) return;
-    setConfig({
+    const updated: ScheduleConfig = {
       ...config,
       blockedDates: [...config.blockedDates, newBlockedDate].sort(),
-    });
+    };
+    setConfig(updated);
     setNewBlockedDate('');
-    setSaved(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+    await updateScheduleConfig(updated);
   };
 
-  const removeBlockedDate = (date: string) => {
+  const removeBlockedDate = async (date: string) => {
     if (!config) return;
-    setConfig({
+    const updated: ScheduleConfig = {
       ...config,
       blockedDates: config.blockedDates.filter(d => d !== date),
-    });
-    setSaved(false);
+    };
+    setConfig(updated);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+    await updateScheduleConfig(updated);
   };
 
   const [newSlotTime, setNewSlotTime] = useState('');
@@ -104,31 +113,37 @@ export default function Schedule() {
     return `${h}:${m.toString().padStart(2, '0')} ${period}`;
   };
 
-  const addCustomSlot = () => {
+  const addCustomSlot = async () => {
     if (!config || !newSlotTime) return;
     const formatted = formatTimeToAmPm(newSlotTime);
     const current = config.customSlots || generateTimeSlots(config);
     if (current.includes(formatted)) return;
     
-    setConfig({
+    const updated: ScheduleConfig = {
       ...config,
       customSlots: [...current, formatted],
-    });
+    };
+    setConfig(updated);
     setNewSlotTime('');
-    setSaved(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+    await updateScheduleConfig(updated);
   };
 
-  const removeCustomSlot = (slotToRemove: string) => {
+  const removeCustomSlot = async (slotToRemove: string) => {
     if (!config) return;
     const current = config.customSlots || generateTimeSlots(config);
-    setConfig({
+    const updated: ScheduleConfig = {
       ...config,
       customSlots: current.filter(s => s !== slotToRemove),
-    });
-    setSaved(false);
+    };
+    setConfig(updated);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+    await updateScheduleConfig(updated);
   };
 
-  const restoreDefaultSlots = () => {
+  const restoreDefaultSlots = async () => {
     if (!config) return;
     const defaults = [
       '8:00 AM',
@@ -141,11 +156,14 @@ export default function Schedule() {
       '3:00 PM',
       '4:00 PM',
     ];
-    setConfig({
+    const updated: ScheduleConfig = {
       ...config,
       customSlots: defaults,
-    });
-    setSaved(false);
+    };
+    setConfig(updated);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+    await updateScheduleConfig(updated);
   };
 
   if (loading || !config) {

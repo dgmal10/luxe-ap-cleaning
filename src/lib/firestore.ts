@@ -607,27 +607,46 @@ export async function getScheduleConfig(): Promise<ScheduleConfig> {
     return getLocal<ScheduleConfig>('luxe_schedule', DEFAULT_SCHEDULE);
   }
 
-  const snap = await getDoc(getScheduleDoc());
-  if (!snap.exists()) {
-    await setDoc(getScheduleDoc(), DEFAULT_SCHEDULE);
-    return DEFAULT_SCHEDULE;
+  try {
+    const snap = await getDoc(getScheduleDoc());
+    if (!snap.exists()) {
+      await setDoc(getScheduleDoc(), DEFAULT_SCHEDULE);
+      setLocal('luxe_schedule', DEFAULT_SCHEDULE);
+      return DEFAULT_SCHEDULE;
+    }
+    const data = snap.data() as ScheduleConfig;
+    const merged: ScheduleConfig = {
+      ...DEFAULT_SCHEDULE,
+      ...data,
+      workDays: {
+        ...DEFAULT_SCHEDULE.workDays,
+        ...(data.workDays || {}),
+      },
+      customSlots: data.customSlots || DEFAULT_SCHEDULE.customSlots,
+      blockedDates: Array.isArray(data.blockedDates) ? data.blockedDates : [],
+    };
+    setLocal('luxe_schedule', merged);
+    return merged;
+  } catch (err) {
+    console.error('Error fetching schedule config from Firestore:', err);
+    return getLocal<ScheduleConfig>('luxe_schedule', DEFAULT_SCHEDULE);
   }
-  const data = snap.data() as ScheduleConfig;
-  return {
-    ...DEFAULT_SCHEDULE,
-    ...data,
-    customSlots: data.customSlots || DEFAULT_SCHEDULE.customSlots,
-  };
 }
 
 /** Update schedule configuration */
 export async function updateScheduleConfig(config: ScheduleConfig): Promise<void> {
+  // Always persist to localStorage for instant local availability and sync
+  setLocal('luxe_schedule', config);
+
   if (!isFirebaseConfigured) {
-    setLocal('luxe_schedule', config);
     return;
   }
 
-  await setDoc(getScheduleDoc(), config);
+  try {
+    await setDoc(getScheduleDoc(), config);
+  } catch (err) {
+    console.error('Error saving schedule config to Firestore:', err);
+  }
 }
 
 /* ============================================================

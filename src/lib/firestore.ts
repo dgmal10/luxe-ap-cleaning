@@ -154,30 +154,48 @@ function setLocal<T>(key: string, data: T) {
 }
 
 /* ============================================================
-   BOOKINGS
+   DATE & TIME NORMALIZATION UTILITIES
    ============================================================ */
 
-/** Create a booking (called from public form) */
-export async function createBooking(data: Omit<Booking, 'id' | 'createdAt' | 'status'>): Promise<string> {
-  if (!isFirebaseConfigured) {
-    const list = getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS);
-    const newBooking: Booking = {
-      ...data,
-      id: `local-b-${Date.now()}`,
-      status: 'pending',
-      createdAt: { seconds: Math.floor(Date.now() / 1000) },
-    };
-    setLocal('luxe_bookings', [newBooking, ...list]);
-    return newBooking.id;
+/**
+ * Normalizes any date string to canonical "YYYY-MM-DD" format.
+ */
+export function normalizeDate(date: string): string {
+  if (!date) return '';
+  const trimmed = date.trim();
+  const parts = trimmed.split('-');
+  if (parts.length === 3) {
+    const y = parts[0].padStart(4, '0');
+    const m = parts[1].padStart(2, '0');
+    const d = parts[2].padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
-
-  const ref = await addDoc(collection(db, 'bookings'), {
-    ...data,
-    status: 'pending',
-    createdAt: Timestamp.now(),
-  });
-  return ref.id;
+  return trimmed;
 }
+
+/**
+ * Returns today's date in local time as "YYYY-MM-DD"
+ */
+export function getLocalTodayString(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Returns tomorrow's date in local time as "YYYY-MM-DD"
+ */
+export function getLocalTomorrowString(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 /**
  * Normalize any time string to canonical format e.g. "9:00 AM", "10:00 AM", "1:00 PM"
  * Handles "09:00 AM", "9:00AM", "09:00", "13:00", "1:00 PM", "01:00 PM", etc.
@@ -202,17 +220,80 @@ export function normalizeTimeSlot(time: string): string {
   return `${h}:${m} ${period}`;
 }
 
-/** Get all active bookings for a specific date (YYYY-MM-DD) */
-export async function getBookingsByDate(date: string): Promise<Booking[]> {
+/* ============================================================
+   BOOKINGS
+   ============================================================ */
+
+/** Create a booking with atomic double-booking check */
+export async function createBooking(data: Omit<Booking, 'id' | 'createdAt' | 'status'>): Promise<string> {
+  const cleanDate = normalizeDate(data.date);
+  const cleanTime = normalizeTimeSlot(data.time);
+
+  if (!cleanDate || !cleanTime) {
+    throw new Error('Date and time are required to book.');
+  }
+
   if (!isFirebaseConfigured) {
     const list = getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS);
-    return list.filter(b => b.date === date && b.status !== 'cancelled');
+    const isConflict = list.some(b => 
+      normalizeDate(b.date) === cleanDate && 
+      normalizeTimeSlot(b.time) === cleanTime && 
+      b.status !== 'cancelled'
+    );
+    if (isConflict) {
+      throw new Error('This time slot is already reserved. Please choose another time.');
+    }
+    const newBooking: Booking = {
+      ...data,
+      date: cleanDate,
+      time: cleanTime,
+      id: `local-b-${Date.now()}`,
+      status: 'pending',
+      createdAt: { seconds: Math.floor(Date.now() / 1000) },
+    };
+    setLocal('luxe_bookings', [newBooking, ...list]);
+    return newBooking.id;
+  }
+
+  // Pre-check in Firestore before creating
+  const q = query(
+    collection(db, 'bookings'),
+    where('date', '==', cleanDate)
+  );
+  const snap = await getDocs(q);
+  const isConflict = snap.docs.some(d => {
+    const b = d.data() as Booking;
+    return b.status !== 'cancelled' && normalizeTimeSlot(b.time) === cleanTime;
+  });
+
+  if (isConflict) {
+    throw new Error('This time slot is already reserved. Please choose another time.');
+  }
+
+  const ref = await addDoc(collection(db, 'bookings'), {
+    ...data,
+    date: cleanDate,
+    time: cleanTime,
+    status: 'pending',
+    createdAt: Timestamp.now(),
+  });
+  return ref.id;
+}
+
+/** Get all active bookings for a specific date (YYYY-MM-DD) */
+export async function getBookingsByDate(date: string): Promise<Booking[]> {
+  const cleanDate = normalizeDate(date);
+  if (!cleanDate) return [];
+
+  if (!isFirebaseConfigured) {
+    const list = getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS);
+    return list.filter(b => normalizeDate(b.date) === cleanDate && b.status !== 'cancelled');
   }
 
   try {
     const q = query(
       collection(db, 'bookings'),
-      where('date', '==', date)
+      where('date', '==', cleanDate)
     );
     const snap = await getDocs(q);
     return snap.docs
@@ -229,7 +310,8 @@ export function subscribeToBookingsByDate(
   date: string,
   callback: (bookedSlots: string[]) => void
 ): Unsubscribe {
-  if (!date) {
+  const cleanDate = normalizeDate(date);
+  if (!cleanDate) {
     callback([]);
     return () => {};
   }
@@ -238,7 +320,7 @@ export function subscribeToBookingsByDate(
     const check = () => {
       const list = getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS);
       const taken = list
-        .filter(b => b.date === date && b.status !== 'cancelled')
+        .filter(b => normalizeDate(b.date) === cleanDate && b.status !== 'cancelled')
         .map(b => normalizeTimeSlot(b.time));
       callback(taken);
     };
@@ -249,7 +331,7 @@ export function subscribeToBookingsByDate(
 
   const q = query(
     collection(db, 'bookings'),
-    where('date', '==', date)
+    where('date', '==', cleanDate)
   );
 
   return onSnapshot(

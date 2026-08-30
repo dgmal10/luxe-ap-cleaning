@@ -15,10 +15,22 @@ import {
   Sparkles,
   Calendar,
 } from 'lucide-react';
-import { SERVICES, BUSINESS, CLEANING_EXTRAS, BASE_PRICING } from '../../lib/constants';
+import {
+  SERVICES,
+  BUSINESS,
+  CLEANING_EXTRAS,
+  BASE_PRICING,
+} from '../../lib/constants';
 import { TIME_SLOTS as FALLBACK_TIME_SLOTS } from '../../lib/constants';
 import { useRevealOnScroll } from '../../hooks/useUtils';
-import { createBooking, getBookingsByDate, subscribeToBookingsByDate, normalizeTimeSlot } from '../../lib/firestore';
+import {
+  createBooking,
+  getBookingsByDate,
+  subscribeToBookingsByDate,
+  normalizeTimeSlot,
+  normalizeDate,
+  getLocalTomorrowString,
+} from '../../lib/firestore';
 import { getScheduleConfig, generateTimeSlots, getPricingConfig, DEFAULT_PRICING } from '../../lib/firestore';
 import type { PricingConfig } from '../../types';
 import { sendBookingEmail } from '../../lib/email';
@@ -40,18 +52,12 @@ interface FormData {
   notes: string;
 }
 
-const getTomorrowString = () => {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow.toISOString().split('T')[0];
-};
-
 const INITIAL: FormData = {
   service: 'deep',
   bedrooms: 2,
   bathrooms: 2,
   extras: [],
-  date: getTomorrowString(),
+  date: getLocalTomorrowString(),
   time: '',
   name: '',
   email: '',
@@ -200,11 +206,16 @@ export default function Booking() {
       if (isTaken) {
         setErrors(prev => ({
           ...prev,
-          time: 'This time slot was just booked by another customer. Please choose a different time.'
+          time: 'This time slot was just reserved by another customer. Please choose a different time.'
         }));
         setForm(prev => ({ ...prev, time: '' }));
         setStep(2);
         setIsSubmitting(false);
+        const el = document.getElementById('booking');
+        if (el) {
+          const top = el.getBoundingClientRect().top + window.scrollY - 70;
+          window.scrollTo({ top, behavior: 'instant' as ScrollBehavior });
+        }
         return;
       }
 
@@ -218,34 +229,43 @@ export default function Booking() {
         bathrooms: form.bathrooms,
         extras: extraNames,
         estimatedPrice,
-        date: form.date,
-        time: form.time,
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        address: form.address,
-        notes: form.notes,
+        date: normalizeDate(form.date),
+        time: normalizeTimeSlot(form.time),
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        address: form.address.trim(),
+        notes: form.notes.trim(),
       };
 
-      await Promise.allSettled([
-        createBooking(bookingPayload),
-        sendBookingEmail(bookingPayload),
-      ]);
+      await createBooking(bookingPayload);
+      sendBookingEmail(bookingPayload).catch(e => console.error('Email send error:', e));
       setSubmitted(true);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to submit booking:', err);
-      setSubmitted(true);
+      const msg = err instanceof Error ? err.message : 'An error occurred while creating your reservation.';
+      setErrors(prev => ({
+        ...prev,
+        time: msg.includes('slot') || msg.includes('reserved') || msg.includes('booked')
+          ? msg
+          : 'Could not complete reservation. Please try another time slot.'
+      }));
+      setForm(prev => ({ ...prev, time: '' }));
+      setStep(2);
+      const el = document.getElementById('booking');
+      if (el) {
+        const top = el.getBoundingClientRect().top + window.scrollY - 70;
+        window.scrollTo({ top, behavior: 'instant' as ScrollBehavior });
+      }
     } finally {
       setIsSubmitting(false);
     }
-  }, [validateStep, form, estimatedPrice]);
+  }, [validateStep, form, estimatedPrice, extrasList]);
 
   const selectedService = SERVICES.find(s => s.id === form.service);
 
-  // Get min date (tomorrow)
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const minDate = tomorrow.toISOString().split('T')[0];
+  // Get min date (tomorrow in local time)
+  const minDate = getLocalTomorrowString();
 
   const handleResetForm = useCallback(() => {
     setForm(INITIAL);

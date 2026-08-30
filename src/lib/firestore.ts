@@ -178,6 +178,29 @@ export async function createBooking(data: Omit<Booking, 'id' | 'createdAt' | 'st
   });
   return ref.id;
 }
+/**
+ * Normalize any time string to canonical format e.g. "9:00 AM", "10:00 AM", "1:00 PM"
+ * Handles "09:00 AM", "9:00AM", "09:00", "13:00", "1:00 PM", "01:00 PM", etc.
+ */
+export function normalizeTimeSlot(time: string): string {
+  if (!time) return '';
+  const cleaned = time.trim().replace(/\s+/g, ' ').toUpperCase();
+  const match = cleaned.match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+  if (!match) return cleaned;
+
+  let h = parseInt(match[1], 10);
+  const m = match[2];
+  let period = match[3]?.toUpperCase();
+
+  if (!period) {
+    period = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+  } else {
+    h = h % 12 || (h === 12 ? 12 : h);
+  }
+
+  return `${h}:${m} ${period}`;
+}
 
 /** Get all active bookings for a specific date (YYYY-MM-DD) */
 export async function getBookingsByDate(date: string): Promise<Booking[]> {
@@ -199,6 +222,49 @@ export async function getBookingsByDate(date: string): Promise<Booking[]> {
     console.error('Error fetching bookings by date:', err);
     return [];
   }
+}
+
+/** Subscribe to active booked time slots for a specific date in real time */
+export function subscribeToBookingsByDate(
+  date: string,
+  callback: (bookedSlots: string[]) => void
+): Unsubscribe {
+  if (!date) {
+    callback([]);
+    return () => {};
+  }
+
+  if (!isFirebaseConfigured) {
+    const check = () => {
+      const list = getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS);
+      const taken = list
+        .filter(b => b.date === date && b.status !== 'cancelled')
+        .map(b => normalizeTimeSlot(b.time));
+      callback(taken);
+    };
+    check();
+    window.addEventListener('storage', check);
+    return () => window.removeEventListener('storage', check);
+  }
+
+  const q = query(
+    collection(db, 'bookings'),
+    where('date', '==', date)
+  );
+
+  return onSnapshot(
+    q,
+    (snap) => {
+      const taken = snap.docs
+        .map(d => d.data() as Booking)
+        .filter(b => b.status !== 'cancelled')
+        .map(b => normalizeTimeSlot(b.time));
+      callback(taken);
+    },
+    (err) => {
+      console.error('Real-time bookings by date error:', err);
+    }
+  );
 }
 
 /** Get all bookings */

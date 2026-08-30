@@ -17,7 +17,7 @@ import {
 import { SERVICES, BUSINESS, CLEANING_EXTRAS, BASE_PRICING } from '../../lib/constants';
 import { TIME_SLOTS as FALLBACK_TIME_SLOTS } from '../../lib/constants';
 import { useRevealOnScroll } from '../../hooks/useUtils';
-import { createBooking, getBookingsByDate } from '../../lib/firestore';
+import { createBooking, getBookingsByDate, subscribeToBookingsByDate, normalizeTimeSlot } from '../../lib/firestore';
 import { getScheduleConfig, generateTimeSlots, getPricingConfig, DEFAULT_PRICING } from '../../lib/firestore';
 import type { PricingConfig } from '../../types';
 import { sendBookingEmail } from '../../lib/email';
@@ -81,28 +81,28 @@ export default function Booking() {
       .catch(() => { /* keep default */ });
   }, []);
 
-  // Check booked slots whenever date changes to prevent double-booking
+  // Real-time listener for booked slots on the selected date to prevent double booking
   useEffect(() => {
     if (!form.date) {
       setBookedSlots([]);
       return;
     }
+
     setLoadingSlots(true);
-    getBookingsByDate(form.date)
-      .then(bookings => {
-        const taken = bookings.map(b => b.time);
-        setBookedSlots(taken);
-        if (form.time && taken.includes(form.time)) {
-          set('time', '');
-        }
-      })
-      .catch(err => {
-        console.error('Error checking booked slots:', err);
-      })
-      .finally(() => {
-        setLoadingSlots(false);
-      });
-  }, [form.date]);
+    const unsubscribe = subscribeToBookingsByDate(form.date, (taken) => {
+      setBookedSlots(taken);
+      setLoadingSlots(false);
+
+      // If user had a slot selected that just got booked by someone else, clear it
+      if (form.time && taken.some(b => normalizeTimeSlot(b) === normalizeTimeSlot(form.time))) {
+        setForm(prev => ({ ...prev, time: '' }));
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [form.date, form.time]);
 
   const set = useCallback((field: keyof FormData, value: unknown) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -140,8 +140,11 @@ export default function Booking() {
       if (form.date && new Date(form.date) < new Date(new Date().toDateString())) {
         errs.date = 'Please select a future date';
       }
-      if (form.date && form.time && bookedSlots.includes(form.time)) {
-        errs.time = 'This time slot is already reserved. Please select another time.';
+      if (form.date && form.time) {
+        const isTaken = bookedSlots.some(b => normalizeTimeSlot(b) === normalizeTimeSlot(form.time));
+        if (isTaken) {
+          errs.time = 'This time slot is already reserved. Please select another time.';
+        }
       }
     }
     if (step === 3) {
@@ -171,12 +174,13 @@ export default function Booking() {
     try {
       // Re-verify slot availability immediately before creating to prevent race conditions
       const currentBookings = await getBookingsByDate(form.date);
-      const isTaken = currentBookings.some(b => b.time === form.time);
+      const isTaken = currentBookings.some(b => normalizeTimeSlot(b.time) === normalizeTimeSlot(form.time));
       if (isTaken) {
         setErrors(prev => ({
           ...prev,
           time: 'This time slot was just booked by another customer. Please choose a different time.'
         }));
+        setForm(prev => ({ ...prev, time: '' }));
         setStep(2);
         setIsSubmitting(false);
         return;
@@ -448,15 +452,20 @@ export default function Booking() {
                   </div>
                   <div className="booking__time-grid">
                     {timeSlots.map(slot => {
-                      const isBooked = bookedSlots.includes(slot);
-                      const isSelected = form.time === slot;
+                      const isBooked = bookedSlots.some(b => normalizeTimeSlot(b) === normalizeTimeSlot(slot));
+                      const isSelected = !isBooked && form.time && normalizeTimeSlot(form.time) === normalizeTimeSlot(slot);
                       return (
                         <button
                           key={slot}
                           type="button"
                           disabled={isBooked}
+                          aria-disabled={isBooked}
                           className={`booking__time-slot ${isSelected ? 'booking__time-slot--selected' : ''} ${isBooked ? 'booking__time-slot--booked' : ''}`}
-                          onClick={() => !isBooked && set('time', slot)}
+                          onClick={() => {
+                            if (!isBooked) {
+                              set('time', slot);
+                            }
+                          }}
                           title={isBooked ? 'This slot has already been reserved' : slot}
                         >
                           <span>{slot}</span>

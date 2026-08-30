@@ -396,8 +396,10 @@
 .booking__time-slot--booked {
   opacity: 0.38 !important;
   cursor: not-allowed !important;
+  pointer-events: none !important;
+  user-select: none !important;
   background: rgba(255, 255, 255, 0.02) !important;
-  border-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(231, 76, 60, 0.2) !important;
   color: var(--color-gray-600) !important;
   display: flex;
   flex-direction: column;
@@ -406,7 +408,7 @@
 }
 
 .booking__time-slot--booked:hover {
-  border-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(231, 76, 60, 0.2) !important;
   color: var(--color-gray-600) !important;
 }
 

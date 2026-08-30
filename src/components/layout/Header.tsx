@@ -18,7 +18,7 @@ export default function Header() {
   );
 
   return (
-    <header className={`header ${scrolled ? 'header--scrolled' : ''}`} id="header">
+    <header className={`header ${scrolled ? 'header--scrolled' : ''} ${menuOpen ? 'header--menu-open' : ''}`} id="header">
       <div className="container header__inner">
         {/* Logo */}
         <button className="header__logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Back to top">

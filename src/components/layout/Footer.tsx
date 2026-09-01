@@ -62,9 +62,13 @@ export default function Footer() {
             </Link>
           </div>
           <div className="footer__bottom-right">
-            <p className="footer__sub">
-              Designed &amp; Developed by Diego Araújo
-            </p>
+            <div className="footer__dev">
+              <p className="footer__sub">Designed &amp; Developed by Diego Araújo</p>
+              <div className="footer__dev-contacts">
+                <a href="tel:+5533988813228" className="footer__dev-link">📞 +55 (33) 98881-3228</a>
+                <a href="mailto:diego01araujo@gmail.com" className="footer__dev-link">✉️ diego01araujo@gmail.com</a>
+              </div>
+            </div>
             <Link to="/admin" className="footer__admin-badge" title="Painel Administrativo">
               <Lock size={12} />
               <span>Admin</span>

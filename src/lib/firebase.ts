@@ -1,6 +1,6 @@
 /**
- * Firebase initialization — single shared instance.
- * Handles missing config gracefully (app still works without Firebase).
+ * Inicialização do Firebase — instância compartilhada única.
+ * Lida com configuração ausente de forma elegante (o app funciona sem o Firebase).
  */
 import { initializeApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
@@ -16,7 +16,7 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:1057012747509:web:acfb7234eddd60219c09bc',
 };
 
-/** Whether Firebase is configured (has at least an API key) */
+/** Indica se o Firebase está configurado (tem pelo menos uma API key) */
 export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
 
 let app: FirebaseApp;
@@ -31,14 +31,14 @@ if (isFirebaseConfigured) {
     db = getFirestore(app);
     storage = getStorage(app);
   } catch (err) {
-    console.warn('Firebase initialization error:', err);
+    console.warn('Erro ao inicializar o Firebase:', err);
     app = {} as FirebaseApp;
     auth = {} as Auth;
     db = {} as Firestore;
     storage = {} as FirebaseStorage;
   }
 } else {
-  // Graceful fallback to mock/demo mode
+  // Fallback gracioso para modo demo/mock
   app = {} as FirebaseApp;
   auth = {} as Auth;
   db = {} as Firestore;

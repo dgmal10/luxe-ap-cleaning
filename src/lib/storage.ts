@@ -1,5 +1,5 @@
 /**
- * Firebase Storage service — gallery image upload/delete with offline fallback.
+ * Serviço do Firebase Storage — upload e exclusão de imagens da galeria com fallback offline.
  */
 import {
   ref,
@@ -10,7 +10,7 @@ import {
 import { storage, isFirebaseConfigured } from './firebase';
 
 /**
- * Upload a gallery image and return its public URL + storage path.
+ * Faz o upload de uma imagem para a galeria e retorna a URL pública + caminho no storage.
  */
 export async function uploadGalleryImage(
   file: File
@@ -39,7 +39,7 @@ export async function uploadGalleryImage(
 }
 
 /**
- * Delete a file from Storage by its path.
+ * Exclui um arquivo do Storage pelo seu caminho.
  */
 export async function deleteStorageFile(storagePath: string): Promise<void> {
   if (!isFirebaseConfigured || !storagePath) return;

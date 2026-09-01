@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, Lock } from 'lucide-react';
-import { NAV_ITEMS, BUSINESS } from '../../lib/constants';
+import { Lock } from 'lucide-react';
+import { NAV_ITEMS } from '../../lib/constants';
 import { useScrollTo } from '../../hooks/useUtils';
 import './Footer.css';
 
@@ -36,30 +36,6 @@ export default function Footer() {
             </Link>
           </div>
 
-          <div className="footer__contact">
-            <h4 className="footer__heading">Contact</h4>
-            <div className="footer__contact-item footer__contact-item--phones">
-              <Phone size={16} />
-              <div className="footer__phones">
-                <a href={`tel:${BUSINESS.phone.replace(/\D/g, '')}`} className="footer__phone-link">
-                  {BUSINESS.phone}
-                  <span className="footer__phone-lang">🇧🇷 PT &amp; 🇪🇸 ES</span>
-                </a>
-                <a href={`tel:${BUSINESS.phoneEN.replace(/\D/g, '')}`} className="footer__phone-link">
-                  {BUSINESS.phoneEN}
-                  <span className="footer__phone-lang">🇺🇸 EN</span>
-                </a>
-              </div>
-            </div>
-            <div className="footer__contact-item">
-              <Mail size={16} />
-              <span>{BUSINESS.email}</span>
-            </div>
-            <div className="footer__contact-item">
-              <MapPin size={16} />
-              <span>{BUSINESS.city}, {BUSINESS.state}</span>
-            </div>
-          </div>
 
           <div className="footer__trust">
             <h4 className="footer__heading">Our Promise</h4>

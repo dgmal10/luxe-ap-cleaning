@@ -1,6 +1,6 @@
 /**
- * Authentication service — wraps Firebase Auth with local fallback.
- * Works seamlessly with or without Firebase configured.
+ * Serviço de autenticação — encapsula o Firebase Auth com fallback local.
+ * Funciona com ou sem Firebase configurado.
  */
 import {
   signInWithEmailAndPassword,
@@ -19,7 +19,7 @@ function notifyLocalAuth(user: User | null) {
   listeners.forEach(cb => cb(user));
 }
 
-/** Sign in with email & password */
+/** Entrar com e-mail e senha */
 export async function loginWithEmail(email: string, password: string): Promise<User> {
   if (!isFirebaseConfigured) {
     const trimmedEmail = email.trim();
@@ -45,7 +45,7 @@ export async function loginWithEmail(email: string, password: string): Promise<U
   return cred.user;
 }
 
-/** Sign out */
+/** Sair da conta */
 export async function logout(): Promise<void> {
   if (!isFirebaseConfigured) {
     localStorage.removeItem(LOCAL_AUTH_KEY);
@@ -55,7 +55,7 @@ export async function logout(): Promise<void> {
   await signOut(auth);
 }
 
-/** Send password-reset email */
+/** Enviar e-mail de redefinição de senha */
 export async function sendPasswordReset(email: string): Promise<void> {
   if (!isFirebaseConfigured) {
     await new Promise(res => setTimeout(res, 600));
@@ -64,7 +64,7 @@ export async function sendPasswordReset(email: string): Promise<void> {
   await sendPasswordResetEmail(auth, email);
 }
 
-/** Subscribe to auth-state changes */
+/** Escutar mudanças no estado de autenticação */
 export function onAuthChange(callback: (user: User | null) => void): Unsubscribe {
   if (!isFirebaseConfigured) {
     listeners.add(callback);

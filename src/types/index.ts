@@ -1,4 +1,4 @@
-/** Service data type */
+/** Tipo de dado de serviço */
 export interface Service {
   id: string;
   name: string;
@@ -7,7 +7,7 @@ export interface Service {
   features: string[];
 }
 
-/** Gallery image type (public display) */
+/** Tipo de imagem da galeria (exibição pública) */
 export interface GalleryImage {
   id: string;
   src: string;
@@ -15,7 +15,7 @@ export interface GalleryImage {
   category: string;
 }
 
-/** Booking form data */
+/** Dados do formulário de agendamento */
 export interface BookingFormData {
   service: string;
   bedrooms: number;
@@ -31,24 +31,24 @@ export interface BookingFormData {
   notes: string;
 }
 
-/** Contact form data */
+/** Dados do formulário de contato */
 export interface ContactFormData {
   name: string;
   email: string;
   message: string;
 }
 
-/** Navigation item */
+/** Item de navegação */
 export interface NavItem {
   label: string;
   href: string;
 }
 
 /* ============================================================
-   ADMIN TYPES
+   TIPOS DO PAINEL ADMINISTRATIVO
    ============================================================ */
 
-/** Booking stored in Firestore */
+/** Agendamento salvo no Firestore */
 export interface Booking {
   id: string;
   service: string;
@@ -65,20 +65,20 @@ export interface Booking {
   address: string;
   notes: string;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
-  createdAt: unknown; // Firestore Timestamp
+  createdAt: unknown; // Timestamp do Firestore
 }
 
-/** Contact message stored in Firestore */
+/** Mensagem de contato salva no Firestore */
 export interface ContactMessage {
   id: string;
   name: string;
   email: string;
   message: string;
   read: boolean;
-  createdAt: unknown; // Firestore Timestamp
+  createdAt: unknown; // Timestamp do Firestore
 }
 
-/** Schedule configuration */
+/** Configuração de agenda */
 export interface ScheduleConfig {
   workDays: {
     monday: boolean;
@@ -89,14 +89,14 @@ export interface ScheduleConfig {
     saturday: boolean;
     sunday: boolean;
   };
-  startTime: string;   // e.g. "08:00"
-  endTime: string;     // e.g. "17:00"
-  slotDuration: number; // in minutes
-  blockedDates: string[]; // YYYY-MM-DD
-  customSlots?: string[]; // Array of custom time slots e.g. ["8:00 AM", "10:30 AM", "1:00 PM"]
+  startTime: string;   // ex: "08:00"
+  endTime: string;     // ex: "17:00"
+  slotDuration: number; // em minutos
+  blockedDates: string[]; // formato YYYY-MM-DD
+  customSlots?: string[]; // horários personalizados ex: ["8:00 AM", "10:30 AM", "1:00 PM"]
 }
 
-/** Pricing configuration stored in Firestore */
+/** Configuração de preços salva no Firestore */
 export interface PricingConfig {
   basePrices: Record<string, number>;
   pricePerBedroom: number;
@@ -109,17 +109,17 @@ export interface PricingConfig {
   }[];
 }
 
-/** Gallery item stored in Firestore */
+/** Item da galeria salvo no Firestore */
 export interface GalleryItem {
   id: string;
-  src: string;          // public URL from Firebase Storage
-  storagePath: string;  // internal path for deletion
+  src: string;          // URL pública do Firebase Storage
+  storagePath: string;  // caminho interno para exclusão
   alt: string;
   category: string;
-  createdAt: unknown;   // Firestore Timestamp
+  createdAt: unknown;   // Timestamp do Firestore
 }
 
-/** Admin sidebar nav item */
+/** Item de navegação do painel admin */
 export interface AdminNavItem {
   label: string;
   path: string;

@@ -1,5 +1,5 @@
 /**
- * EmailJS Notification Service — sends instant detailed booking, confirmation, cancellation & contact emails.
+ * Serviço de e-mail via EmailJS — envia notificações de agendamento, confirmação, cancelamento e contato.
  */
 import emailjs from '@emailjs/browser';
 import type { BookingFormData, ContactFormData, Booking } from '../types';
@@ -13,26 +13,26 @@ const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'EyKqkTJBOSponl3xH
 
 export const isEmailConfigured = Boolean(SERVICE_ID && BOOKING_TEMPLATE_ID && PUBLIC_KEY);
 
-// Initialize EmailJS with public key
+// Inicializa o EmailJS com a chave pública
 if (PUBLIC_KEY) {
   try {
     emailjs.init({ publicKey: PUBLIC_KEY });
   } catch (err) {
-    console.warn('[EmailJS] Initialization warning:', err);
+    console.warn('[EmailJS] Aviso na inicialização:', err);
   }
 }
 
-/** Send a detailed new booking notification email to Admin */
+/** Envia e-mail de notificação de novo agendamento para o Admin */
 export async function sendBookingEmail(booking: BookingFormData): Promise<boolean> {
   if (!isEmailConfigured) {
-    console.info('[EmailJS] Keys not configured. Skipping email delivery.');
+    console.info('[EmailJS] Chaves não configuradas. E-mail não enviado.');
     return false;
   }
 
   try {
     const templateParams = {
       to_name: 'LUXE A&P Team',
-      to_email: 'luxeaepcleaning@gmail.com', // Always arrives at Admin's Gmail
+      to_email: 'luxeaepcleaning@gmail.com', // Sempre chega ao Gmail do Admin
       client_name: booking.name,
       name: booking.name,
       client_email: booking.email,
@@ -65,10 +65,10 @@ export async function sendBookingEmail(booking: BookingFormData): Promise<boolea
     const res = await emailjs.send(SERVICE_ID, BOOKING_TEMPLATE_ID, templateParams, {
       publicKey: PUBLIC_KEY,
     });
-    console.log('[EmailJS] Admin email sent successfully:', res.status, res.text);
+    console.log('[EmailJS] E-mail para Admin enviado com sucesso:', res.status, res.text);
     return true;
   } catch (error) {
-    console.error('[EmailJS] Failed to send booking email to admin:', error);
+    console.error('[EmailJS] Falha ao enviar e-mail de agendamento para o Admin:', error);
     return false;
   }
 }
@@ -83,7 +83,7 @@ export async function sendClientReceiptEmail(booking: BookingFormData, bookingId
     const manageUrl = `${window.location.origin}/manage-booking?id=${bookingId}`;
     const templateParams = {
       to_name: booking.name,
-      to_email: booking.email, // Arrives at Client's Email
+      to_email: booking.email, // Chega ao e-mail do Cliente
       client_name: booking.name,
       name: booking.name,
       client_email: booking.email,
@@ -112,10 +112,10 @@ export async function sendClientReceiptEmail(booking: BookingFormData, bookingId
     const res = await emailjs.send(SERVICE_ID, CONFIRM_TEMPLATE_ID, templateParams, {
       publicKey: PUBLIC_KEY,
     });
-    console.log('[EmailJS] Client receipt email sent successfully:', res.status, res.text);
+    console.log('[EmailJS] E-mail de recibo para o Cliente enviado com sucesso:', res.status, res.text);
     return true;
   } catch (error) {
-    console.error('[EmailJS] Failed to send client receipt email:', error);
+    console.error('[EmailJS] Falha ao enviar e-mail de recibo para o Cliente:', error);
     return false;
   }
 }
@@ -132,7 +132,7 @@ export async function sendClientConfirmationEmail(booking: Booking): Promise<boo
 
     const templateParams = {
       to_name: booking.name,
-      to_email: booking.email, // Arrives at Client's Email with the ADM price
+      to_email: booking.email, // Chega ao e-mail do Cliente com o preço definido pelo ADM
       client_name: booking.name,
       name: booking.name,
       client_email: booking.email,
@@ -161,15 +161,15 @@ export async function sendClientConfirmationEmail(booking: Booking): Promise<boo
     const res = await emailjs.send(SERVICE_ID, CONFIRM_TEMPLATE_ID, templateParams, {
       publicKey: PUBLIC_KEY,
     });
-    console.log('[EmailJS] Client confirmation quote email sent successfully:', res.status, res.text);
+    console.log('[EmailJS] E-mail de confirmação com orçamento enviado com sucesso:', res.status, res.text);
     return true;
   } catch (error) {
-    console.error('[EmailJS] Failed to send client confirmation email:', error);
+    console.error('[EmailJS] Falha ao enviar e-mail de confirmação para o Cliente:', error);
     return false;
   }
 }
 
-/** Send an appointment cancellation notification email to the Client */
+/** Envia e-mail de cancelamento de agendamento para o Cliente */
 export async function sendClientCancellationEmail(booking: Booking, reason?: string): Promise<boolean> {
   if (!isEmailConfigured) {
     return false;
@@ -197,15 +197,15 @@ export async function sendClientCancellationEmail(booking: Booking, reason?: str
     const res = await emailjs.send(SERVICE_ID, CANCEL_TEMPLATE_ID, templateParams, {
       publicKey: PUBLIC_KEY,
     });
-    console.log('[EmailJS] Cancellation email sent:', res.status, res.text);
+    console.log('[EmailJS] E-mail de cancelamento enviado:', res.status, res.text);
     return true;
   } catch (error) {
-    console.error('[EmailJS] Failed to send client cancellation email:', error);
+    console.error('[EmailJS] Falha ao enviar e-mail de cancelamento para o Cliente:', error);
     return false;
   }
 }
 
-/** Send an alert email to Admin when a customer cancels online */
+/** Envia alerta de cancelamento feito pelo cliente para o Admin */
 export async function sendAdminCancellationAlert(booking: Booking, reason?: string): Promise<boolean> {
   if (!isEmailConfigured) {
     return false;
@@ -233,18 +233,18 @@ export async function sendAdminCancellationAlert(booking: Booking, reason?: stri
     const res = await emailjs.send(SERVICE_ID, BOOKING_TEMPLATE_ID, templateParams, {
       publicKey: PUBLIC_KEY,
     });
-    console.log('[EmailJS] Admin cancellation alert sent:', res.status, res.text);
+    console.log('[EmailJS] Alerta de cancelamento enviado para o Admin:', res.status, res.text);
     return true;
   } catch (error) {
-    console.error('[EmailJS] Failed to send admin cancellation alert:', error);
+    console.error('[EmailJS] Falha ao enviar alerta de cancelamento para o Admin:', error);
     return false;
   }
 }
 
-/** Send a contact form message email */
+/** Envia e-mail com mensagem do formulário de contato */
 export async function sendContactEmail(contact: ContactFormData): Promise<boolean> {
   if (!isEmailConfigured) {
-    console.info('[EmailJS] Keys not configured. Skipping email delivery.');
+    console.info('[EmailJS] Chaves não configuradas. E-mail não enviado.');
     return false;
   }
 
@@ -264,10 +264,10 @@ export async function sendContactEmail(contact: ContactFormData): Promise<boolea
     const res = await emailjs.send(SERVICE_ID, CONTACT_TEMPLATE_ID, templateParams, {
       publicKey: PUBLIC_KEY,
     });
-    console.log('[EmailJS] Contact email sent:', res.status, res.text);
+    console.log('[EmailJS] E-mail de contato enviado:', res.status, res.text);
     return true;
   } catch (error) {
-    console.error('[EmailJS] Failed to send contact email:', error);
+    console.error('[EmailJS] Falha ao enviar e-mail de contato:', error);
     return false;
   }
 }

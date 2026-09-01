@@ -30,6 +30,42 @@ function ContactOptionsModal({ onClose }: { onClose: () => void }) {
         <p className="contact-modal__sub">Select your preferred communication channel below:</p>
 
         <div className="contact-modal__options">
+          {/* Direct Phone Call - English */}
+          <a
+            href={`tel:+${BUSINESS.phoneEN.replace(/\D/g, '')}`}
+            className="contact-modal__option contact-modal__option--phone"
+            onClick={onClose}
+          >
+            <div className="contact-modal__option-icon">
+              <Phone size={20} />
+            </div>
+            <div className="contact-modal__option-text">
+              <div className="contact-modal__option-header">
+                <strong>Direct Call</strong>
+                <span className="contact-modal__tag">🇺🇸 English</span>
+              </div>
+              <small>{BUSINESS.phoneEN}</small>
+            </div>
+          </a>
+
+          {/* Direct Phone Call - PT & ES */}
+          <a
+            href={`tel:+${BUSINESS.phone.replace(/\D/g, '')}`}
+            className="contact-modal__option contact-modal__option--phone"
+            onClick={onClose}
+          >
+            <div className="contact-modal__option-icon">
+              <Phone size={20} />
+            </div>
+            <div className="contact-modal__option-text">
+              <div className="contact-modal__option-header">
+                <strong>Direct Call</strong>
+                <span className="contact-modal__tag">🇧🇷 PT &amp; 🇪🇸 ES</span>
+              </div>
+              <small>{BUSINESS.phone}</small>
+            </div>
+          </a>
+
           {/* iMessage / SMS - English */}
           <a
             href={`sms:+${BUSINESS.phoneEN.replace(/\D/g, '')}`}

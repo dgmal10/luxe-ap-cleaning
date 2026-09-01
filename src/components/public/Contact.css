@@ -188,7 +188,9 @@
   border-radius: var(--radius-2xl);
   padding: var(--space-8);
   width: 100%;
-  max-width: 440px;
+  max-width: 450px;
+  max-height: 90vh;
+  overflow-y: auto;
   position: relative;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
   border: 1px solid var(--color-gray-200);
@@ -278,6 +280,11 @@
   flex-shrink: 0;
 }
 
+.contact-modal__option--phone .contact-modal__option-icon {
+  background: rgba(191, 155, 80, 0.15);
+  color: var(--color-gold-dark);
+}
+
 .contact-modal__option--imessage .contact-modal__option-icon {
   background: rgba(0, 122, 255, 0.12);
   color: #007AFF;
@@ -289,8 +296,8 @@
 }
 
 .contact-modal__option--email .contact-modal__option-icon {
-  background: rgba(191, 155, 80, 0.15);
-  color: var(--color-gold-dark);
+  background: rgba(100, 116, 139, 0.15);
+  color: #475569;
 }
 
 .contact-modal__option-text {

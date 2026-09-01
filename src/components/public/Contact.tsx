@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Send, MessageCircle, Phone, Mail, MapPin, CheckCircle } from 'lucide-react';
+import { Send, MessageCircle, Phone, Mail, MapPin, CheckCircle, X, MessageSquare } from 'lucide-react';
 import { BUSINESS } from '../../lib/constants';
 import { useRevealOnScroll } from '../../hooks/useUtils';
 import { createMessage } from '../../lib/firestore';
@@ -18,12 +18,103 @@ function sanitizeText(str: string): string {
   return str.replace(/<[^>]*>?/gm, '').trim();
 }
 
+/** Modal offering contact channels: WhatsApp, Email, iMessage/SMS */
+function ContactOptionsModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="contact-modal__overlay" onClick={onClose}>
+      <div className="contact-modal__box" onClick={e => e.stopPropagation()}>
+        <button className="contact-modal__close" onClick={onClose} aria-label="Close">
+          <X size={18} />
+        </button>
+        <h3 className="contact-modal__title">How would you like to reach us?</h3>
+        <p className="contact-modal__sub">Select your preferred communication channel below:</p>
+
+        <div className="contact-modal__options">
+          {/* iMessage / SMS - English */}
+          <a
+            href={`sms:${BUSINESS.phoneEN.replace(/\D/g, '')}`}
+            className="contact-modal__option contact-modal__option--imessage"
+            onClick={onClose}
+          >
+            <div className="contact-modal__option-icon">
+              <MessageSquare size={20} />
+            </div>
+            <div className="contact-modal__option-text">
+              <div className="contact-modal__option-header">
+                <strong>iMessage / SMS</strong>
+                <span className="contact-modal__tag">🇺🇸 English</span>
+              </div>
+              <small>{BUSINESS.phoneEN}</small>
+            </div>
+          </a>
+
+          {/* iMessage / SMS - Portuguese & Spanish */}
+          <a
+            href={`sms:${BUSINESS.phone.replace(/\D/g, '')}`}
+            className="contact-modal__option contact-modal__option--imessage"
+            onClick={onClose}
+          >
+            <div className="contact-modal__option-icon">
+              <MessageSquare size={20} />
+            </div>
+            <div className="contact-modal__option-text">
+              <div className="contact-modal__option-header">
+                <strong>iMessage / SMS</strong>
+                <span className="contact-modal__tag">🇧🇷 PT &amp; 🇪🇸 ES</span>
+              </div>
+              <small>{BUSINESS.phone}</small>
+            </div>
+          </a>
+
+          {/* WhatsApp */}
+          <a
+            href={BUSINESS.whatsapp}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="contact-modal__option contact-modal__option--whatsapp"
+            onClick={onClose}
+          >
+            <div className="contact-modal__option-icon">
+              <MessageCircle size={20} />
+            </div>
+            <div className="contact-modal__option-text">
+              <div className="contact-modal__option-header">
+                <strong>WhatsApp</strong>
+                <span className="contact-modal__tag contact-modal__tag--green">Fast Chat</span>
+              </div>
+              <small>Instant response</small>
+            </div>
+          </a>
+
+          {/* Email */}
+          <a
+            href={`mailto:${BUSINESS.email}`}
+            className="contact-modal__option contact-modal__option--email"
+            onClick={onClose}
+          >
+            <div className="contact-modal__option-icon">
+              <Mail size={20} />
+            </div>
+            <div className="contact-modal__option-text">
+              <div className="contact-modal__option-header">
+                <strong>Direct Email</strong>
+              </div>
+              <small>{BUSINESS.email}</small>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Contact() {
   const ref = useRevealOnScroll();
   const [form, setForm] = useState<ContactForm>({ name: '', email: '', message: '', fax_hp: '' });
   const [errors, setErrors] = useState<Partial<Record<keyof ContactForm, string>>>({});
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
 
   const set = useCallback((field: keyof ContactForm, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -138,19 +229,19 @@ export default function Contact() {
               </div>
             </div>
 
-            {/* WhatsApp CTA */}
-            <a
-              href={BUSINESS.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
+            {/* Quick Contact CTA */}
+            <button
+              type="button"
               className="contact__whatsapp"
+              onClick={() => setShowContactModal(true)}
+              aria-label="Contact options"
             >
               <MessageCircle size={24} />
               <div>
-                <strong>Chat on WhatsApp</strong>
-                <span>Get a quick response</span>
+                <strong>Quick Message / Chat</strong>
+                <span>WhatsApp, iMessage &amp; Email</span>
               </div>
-            </a>
+            </button>
           </div>
 
           {/* Contact form */}
@@ -243,16 +334,20 @@ export default function Contact() {
         </div>
       </div>
 
-      {/* Floating WhatsApp button */}
-      <a
-        href={BUSINESS.whatsapp}
-        target="_blank"
-        rel="noopener noreferrer"
+      {/* Floating Action Button */}
+      <button
+        type="button"
         className="contact__fab"
-        aria-label="Chat on WhatsApp"
+        onClick={() => setShowContactModal(true)}
+        aria-label="Open contact channels"
       >
         <MessageCircle size={28} />
-      </a>
+      </button>
+
+      {/* Contact modal */}
+      {showContactModal && (
+        <ContactOptionsModal onClose={() => setShowContactModal(false)} />
+      )}
     </section>
   );
 }

@@ -271,3 +271,32 @@ export async function sendContactEmail(contact: ContactFormData): Promise<boolea
     return false;
   }
 }
+
+/** Função de teste para diagnóstico do EmailJS */
+export async function testEmailConnection(testEmail: string): Promise<{ success: boolean; message: string }> {
+  if (!isEmailConfigured) {
+    return { success: false, message: 'Chaves do EmailJS não estão configuradas.' };
+  }
+  try {
+    const res = await emailjs.send(SERVICE_ID, BOOKING_TEMPLATE_ID, {
+      to_name: 'Teste de Conexão',
+      to_email: testEmail,
+      client_name: 'Teste',
+      name: 'Teste',
+      email: testEmail,
+      phone: '+1 774 000 0000',
+      service: 'Standard Cleaning',
+      subject: '🧪 Teste de Conexão EmailJS — LUXE A&P',
+      message: 'Este é um e-mail de teste para validar a integração do EmailJS com seu Gmail.',
+    }, {
+      publicKey: PUBLIC_KEY,
+    });
+    return { success: true, message: `E-mail de teste enviado com sucesso! (${res.status} ${res.text})` };
+  } catch (err: unknown) {
+    const errObj = err as { status?: number; text?: string; message?: string };
+    return {
+      success: false,
+      message: `Erro do EmailJS (${errObj.status || 'Falha'}): ${errObj.text || errObj.message || String(err)}`
+    };
+  }
+}

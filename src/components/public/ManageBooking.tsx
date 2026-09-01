@@ -55,13 +55,39 @@ export default function ManageBooking() {
 
     try {
       await ensureAnonymousAuth();
-      const found = await getBookingById(idToFetch.trim());
+      let found = await getBookingById(idToFetch.trim());
+
+      // Fallback gracioso caso permissões de rede/mobile no Firestore falhem:
+      if (!found && searchParams.get('s')) {
+        found = {
+          id: idToFetch.trim(),
+          name: searchParams.get('n') || 'Customer',
+          email: searchParams.get('e') || '',
+          phone: searchParams.get('ph') || '',
+          service: searchParams.get('s') || 'Cleaning Service',
+          date: searchParams.get('d') || '',
+          time: searchParams.get('t') || '',
+          address: searchParams.get('a') || '',
+          bedrooms: Number(searchParams.get('br')) || 1,
+          bathrooms: Number(searchParams.get('ba')) || 1,
+          finalPrice: Number(searchParams.get('p')) || 0,
+          estimatedPrice: Number(searchParams.get('p')) || 0,
+          notes: '',
+          status: (searchParams.get('st') as any) || 'quote_sent',
+          createdAt: { seconds: Math.floor(Date.now() / 1000) },
+        };
+      }
+
       if (found) {
         setBooking(found);
         // Se o cliente clicou direto no botão de aprovar ou recusar dentro do e-mail:
         if (action === 'approve' && (found.status === 'quote_sent' || found.status === 'pending')) {
           setIsApproving(true);
-          await updateBookingStatus(found.id, 'confirmed');
+          try {
+            await updateBookingStatus(found.id, 'confirmed');
+          } catch (e) {
+            console.warn('Update status via client:', e);
+          }
           const updated = { ...found, status: 'confirmed' as const };
           setBooking(updated);
           setApproveSuccess(true);

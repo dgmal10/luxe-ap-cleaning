@@ -59,7 +59,7 @@ export async function sendBookingEmail(booking: BookingFormData): Promise<boolea
       notes: booking.notes || 'None provided',
       message: `NEW CLIENT REQUEST:\n• Name: ${booking.name}\n• Phone: ${booking.phone}\n• Email: ${booking.email}\n• Address: ${booking.address}\n• Home Size: ${booking.bedrooms} Bed, ${booking.bathrooms} Bath\n• Service: ${booking.service}\n• Date: ${booking.date} at ${booking.time}`,
       manage_url: `${window.location.origin}/admin`,
-      subject: `🔔 NEW BOOKING REQUEST from ${booking.name} (${booking.date} at ${booking.time})`,
+      subject: `New Booking Request: ${booking.name} (${booking.date} at ${booking.time})`,
     };
 
     const res = await emailjs.send(SERVICE_ID, BOOKING_TEMPLATE_ID, templateParams, {
@@ -106,7 +106,7 @@ export async function sendClientReceiptEmail(booking: BookingFormData, bookingId
       price: 'Pending Review',
       manage_url: manageUrl,
       message: `Thank you for choosing LUXE A&P Cleaning! We have received your booking request for ${booking.service} on ${booking.date} at ${booking.time}. Our team is reviewing your home specifications and will send your personalized quote shortly.`,
-      subject: `✨ We Received Your Booking Request! — LUXE A&P Cleaning`,
+      subject: `Your Booking Request with LUXE A&P Cleaning (${booking.date})`,
     };
 
     const res = await emailjs.send(SERVICE_ID, CONFIRM_TEMPLATE_ID, templateParams, {
@@ -155,7 +155,7 @@ export async function sendClientConfirmationEmail(booking: Booking): Promise<boo
       price: `$${quotePrice}`,
       manage_url: manageUrl,
       message: `Your customized quote for ${booking.service} on ${booking.date} at ${booking.time} is $${quotePrice}. Your appointment has been officially confirmed!`,
-      subject: `✅ Booking Confirmed & Official Quote ($${quotePrice}) — LUXE A&P Cleaning`,
+      subject: `Appointment Confirmed: LUXE A&P Cleaning (${booking.date})`,
     };
 
     const res = await emailjs.send(SERVICE_ID, CONFIRM_TEMPLATE_ID, templateParams, {
@@ -191,7 +191,7 @@ export async function sendClientCancellationEmail(booking: Booking, reason?: str
       service_time: booking.time,
       time: booking.time,
       cancel_reason: reason || 'Cancelled per customer request',
-      subject: `❌ Booking Cancellation: LUXE A&P Cleaning - ${booking.date}`,
+      subject: `Appointment Cancelled: LUXE A&P Cleaning (${booking.date})`,
     };
 
     const res = await emailjs.send(SERVICE_ID, CANCEL_TEMPLATE_ID, templateParams, {
@@ -227,7 +227,7 @@ export async function sendAdminCancellationAlert(booking: Booking, reason?: stri
       service_time: booking.time,
       time: booking.time,
       cancel_reason: reason || 'Customer cancelled via online self-service',
-      subject: `⚠️ Customer Cancelled Booking: ${booking.name} (${booking.date} at ${booking.time})`,
+      subject: `Customer Cancelled: ${booking.name} (${booking.date} at ${booking.time})`,
     };
 
     const res = await emailjs.send(SERVICE_ID, BOOKING_TEMPLATE_ID, templateParams, {
@@ -258,7 +258,7 @@ export async function sendContactEmail(contact: ContactFormData): Promise<boolea
       email: contact.email,
       message_content: contact.message,
       message: contact.message,
-      subject: `📬 New Contact Message from ${contact.name}`,
+      subject: `New Contact Message from ${contact.name}`,
     };
 
     const res = await emailjs.send(SERVICE_ID, CONTACT_TEMPLATE_ID, templateParams, {

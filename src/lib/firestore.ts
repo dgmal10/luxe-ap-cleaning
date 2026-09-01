@@ -470,12 +470,26 @@ export async function getBookingById(id: string): Promise<Booking | null> {
 
   try {
     const snap = await getDoc(doc(db, 'bookings', cleanId));
-    if (!snap.exists()) return null;
-    return { id: snap.id, ...snap.data() } as Booking;
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() } as Booking;
+    }
   } catch (err) {
-    console.error('Error fetching booking by ID:', err);
-    return null;
+    console.warn('Direct getDoc failed, trying collection query fallback:', err);
   }
+
+  try {
+    const snap = await getDocs(collection(db, 'bookings'));
+    const found = snap.docs.find(
+      d => d.id.toLowerCase() === cleanId.toLowerCase() || d.id.toLowerCase().startsWith(cleanId.toLowerCase())
+    );
+    if (found) {
+      return { id: found.id, ...found.data() } as Booking;
+    }
+  } catch (err) {
+    console.error('Fallback query error in getBookingById:', err);
+  }
+
+  return null;
 }
 
 /** Delete a booking */

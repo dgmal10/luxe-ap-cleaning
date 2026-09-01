@@ -83,7 +83,7 @@ export async function sendClientReceiptEmail(booking: BookingFormData, bookingId
     const manageUrl = `${window.location.origin}/manage-booking?id=${bookingId}`;
     const templateParams = {
       to_name: booking.name,
-      to_email: booking.email, // Chega ao e-mail do Cliente
+      to_email: booking.email,
       client_name: booking.name,
       name: booking.name,
       client_email: booking.email,
@@ -101,12 +101,16 @@ export async function sendClientReceiptEmail(booking: BookingFormData, bookingId
       home_size: `${booking.bedrooms} Bedroom(s), ${booking.bathrooms} Bathroom(s)`,
       selected_extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
       extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
-      final_price: 'Quote Under Review (Our team will send your customized price shortly)',
+      service_notes: booking.notes || 'None provided',
+      notes: booking.notes || 'None provided',
+      final_price: 'Pending Review by Team',
       estimated_price: 'Pending Review',
       price: 'Pending Review',
+      approve_url: manageUrl,
+      decline_url: `${manageUrl}&action=decline`,
       manage_url: manageUrl,
       message: `Thank you for choosing LUXE A&P Cleaning! We have received your booking request for ${booking.service} on ${booking.date} at ${booking.time}. Our team is reviewing your home specifications and will send your personalized quote shortly.`,
-      subject: `Your Booking Request with LUXE A&P Cleaning (${booking.date})`,
+      subject: `Booking Request Received: LUXE A&P Cleaning (${booking.date})`,
     };
 
     const res = await emailjs.send(SERVICE_ID, CONFIRM_TEMPLATE_ID, templateParams, {

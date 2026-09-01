@@ -81,6 +81,24 @@ export async function sendClientReceiptEmail(booking: BookingFormData, bookingId
 
   try {
     const manageUrl = `${window.location.origin}/manage-booking?id=${bookingId}`;
+
+    const priceBoxHtml = `
+      <div style="background-color: #242424; border: 2px solid #d4af37; border-radius: 8px; padding: 18px; text-align: center; margin: 20px 0;">
+        <span style="font-size: 12px; color: #d4af37; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; display: block;">Status do Orçamento</span>
+        <span style="font-size: 20px; font-weight: bold; color: #ffffff; display: block; margin: 6px 0;">⏳ Em Análise pela Equipe</span>
+        <span style="font-size: 12px; color: #bbbbbb; display: block;">Nossa equipe enviará seu preço oficial por e-mail em breve.</span>
+      </div>
+    `;
+
+    // 1º EMAIL NUNCA TEM BOTÃO DE APROVAR ORÇAMENTO!
+    const actionButtonsHtml = `
+      <div style="text-align: center; margin: 20px 0 10px;">
+        <a href="${manageUrl}" style="background-color: #333333; border: 1px solid #d4af37; color: #d4af37 !important; padding: 12px 22px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; display: inline-block;">
+          🔍 Acompanhar Solicitação Online
+        </a>
+      </div>
+    `;
+
     const templateParams = {
       to_name: booking.name,
       to_email: booking.email,
@@ -103,7 +121,9 @@ export async function sendClientReceiptEmail(booking: BookingFormData, bookingId
       extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
       service_notes: booking.notes || 'None provided',
       notes: booking.notes || 'None provided',
-      final_price: 'Pending Review by Team',
+      price_box: priceBoxHtml,
+      action_buttons: actionButtonsHtml,
+      final_price: 'Pending Review',
       estimated_price: 'Pending Review',
       price: 'Pending Review',
       approve_url: manageUrl,
@@ -136,6 +156,26 @@ export async function sendClientQuoteEmail(booking: Booking): Promise<boolean> {
     const declineUrl = `${window.location.origin}/manage-booking?id=${booking.id}&action=decline`;
     const manageUrl = `${window.location.origin}/manage-booking?id=${booking.id}`;
 
+    const priceBoxHtml = `
+      <div style="background-color: #1a1a1a; border: 2px solid #2ecc71; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+        <span style="font-size: 12px; color: #d4af37; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; display: block;">Preço Oficial do Orçamento</span>
+        <span style="font-size: 38px; font-weight: bold; color: #2ecc71; display: block; margin: 6px 0;">$${quotePrice}</span>
+        <span style="font-size: 11px; color: #aaaaaa; display: block;">Todos os equipamentos profissionais e suprimentos inclusos</span>
+      </div>
+    `;
+
+    // 2º EMAIL TEM OS BOTÕES DE APROVAR E RECUSAR
+    const actionButtonsHtml = `
+      <div style="text-align: center; margin: 25px 0 15px;">
+        <a href="${approveUrl}" style="background-color: #27ae60; color: #ffffff !important; padding: 16px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: block; margin-bottom: 12px; text-align: center;">
+          ✅ APROVAR E CONFIRMAR ORÇAMENTO ($${quotePrice})
+        </a>
+        <a href="${declineUrl}" style="color: #ff6b6b !important; text-decoration: underline; font-size: 13px; display: inline-block; padding: 6px;">
+          ❌ Recusar este orçamento
+        </a>
+      </div>
+    `;
+
     const templateParams = {
       to_name: booking.name,
       to_email: booking.email,
@@ -158,6 +198,8 @@ export async function sendClientQuoteEmail(booking: Booking): Promise<boolean> {
       extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
       service_notes: booking.notes || 'None provided',
       notes: booking.notes || 'None provided',
+      price_box: priceBoxHtml,
+      action_buttons: actionButtonsHtml,
       final_price: `$${quotePrice}`,
       estimated_price: `$${quotePrice}`,
       price: `$${quotePrice}`,

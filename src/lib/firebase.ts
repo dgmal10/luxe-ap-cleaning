@@ -3,7 +3,7 @@
  * Lida com configuração ausente de forma elegante (o app funciona sem o Firebase).
  */
 import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
+import { getAuth, signInAnonymously, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
@@ -43,6 +43,17 @@ if (isFirebaseConfigured) {
   auth = {} as Auth;
   db = {} as Firestore;
   storage = {} as FirebaseStorage;
+}
+
+/** Garante autenticação para leituras/atualizações públicas no celular */
+export async function ensureAnonymousAuth(): Promise<void> {
+  if (isFirebaseConfigured && auth && !auth.currentUser) {
+    try {
+      await signInAnonymously(auth);
+    } catch {
+      // Regras públicas do Firestore permitirão leitura mesmo se anônimo estiver desativado
+    }
+  }
 }
 
 export { app as default, auth, db, storage };

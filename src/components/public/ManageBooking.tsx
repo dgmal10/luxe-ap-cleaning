@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { BUSINESS } from '../../lib/constants';
 import { getBookingById, updateBookingStatus } from '../../lib/firestore';
+import { ensureAnonymousAuth } from '../../lib/firebase';
 import {
   sendClientCancellationEmail,
   sendAdminCancellationAlert,
@@ -53,6 +54,7 @@ export default function ManageBooking() {
     setDeclineSuccess(false);
 
     try {
+      await ensureAnonymousAuth();
       const found = await getBookingById(idToFetch.trim());
       if (found) {
         setBooking(found);

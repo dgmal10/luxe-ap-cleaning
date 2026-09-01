@@ -32,7 +32,7 @@ import {
   subscribeToBookingsByDate,
   normalizeTimeSlot,
   normalizeDate,
-  getLocalTomorrowString,
+  getLocalTodayString,
   getDayOfWeekFromDate,
   parseLocalDate,
   subscribeToScheduleConfig,
@@ -64,12 +64,30 @@ function sanitizeText(str: string): string {
   return (str || '').replace(/<[^>]*>?/gm, '').trim();
 }
 
+/** Check if a time slot has already passed for today */
+function isSlotInPastToday(dateStr: string, slotStr: string): boolean {
+  if (normalizeDate(dateStr) !== getLocalTodayString()) return false;
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  
+  const match = slotStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (!match) return false;
+  let h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  const period = match[3]?.toUpperCase();
+  if (period === 'PM' && h < 12) h += 12;
+  if (period === 'AM' && h === 12) h = 0;
+  
+  const slotMinutes = h * 60 + m;
+  return slotMinutes <= currentMinutes;
+}
+
 const INITIAL: FormData = {
   service: 'deep',
   bedrooms: 2,
   bathrooms: 2,
   extras: [],
-  date: getLocalTomorrowString(),
+  date: getLocalTodayString(),
   time: '',
   name: '',
   email: '',
@@ -137,10 +155,9 @@ function getDateAvailability(dateStr: string, config: ScheduleConfig | null): { 
   return { unavailable: false };
 }
 
-/** Helper to find the first open business day starting from tomorrow */
+/** Helper to find the first open business day starting from today */
 function findFirstOpenDate(config: ScheduleConfig): string {
   const cur = new Date();
-  cur.setDate(cur.getDate() + 1);
 
   for (let i = 0; i < 21; i++) {
     const y = cur.getFullYear();
@@ -153,7 +170,7 @@ function findFirstOpenDate(config: ScheduleConfig): string {
     }
     cur.setDate(cur.getDate() + 1);
   }
-  return getLocalTomorrowString();
+  return getLocalTodayString();
 }
 
 export default function Booking() {
@@ -435,8 +452,8 @@ export default function Booking() {
 
   const selectedService = SERVICES.find(s => s.id === form.service);
 
-  // Get min date (tomorrow in local time)
-  const minDate = getLocalTomorrowString();
+  // Get min date (today in local time)
+  const minDate = getLocalTodayString();
 
   const handleResetForm = useCallback(() => {
     setForm(INITIAL);
@@ -744,23 +761,26 @@ export default function Booking() {
                       <div className="booking__time-grid">
                         {timeSlots.map(slot => {
                           const isBooked = bookedSlots.some(b => normalizeTimeSlot(b) === normalizeTimeSlot(slot));
-                          const isSelected = !isBooked && form.time && normalizeTimeSlot(form.time) === normalizeTimeSlot(slot);
+                          const isPast = isSlotInPastToday(form.date, slot);
+                          const isUnavailable = isBooked || isPast;
+                          const isSelected = !isUnavailable && form.time && normalizeTimeSlot(form.time) === normalizeTimeSlot(slot);
                           return (
                             <button
                               key={slot}
                               type="button"
-                              disabled={isBooked}
-                              aria-disabled={isBooked}
-                              className={`booking__time-slot ${isSelected ? 'booking__time-slot--selected' : ''} ${isBooked ? 'booking__time-slot--booked' : ''}`}
+                              disabled={isUnavailable}
+                              aria-disabled={isUnavailable}
+                              className={`booking__time-slot ${isSelected ? 'booking__time-slot--selected' : ''} ${isUnavailable ? 'booking__time-slot--booked' : ''}`}
                               onClick={() => {
-                                if (!isBooked) {
+                                if (!isUnavailable) {
                                   set('time', slot);
                                 }
                               }}
-                              title={isBooked ? 'This slot has already been reserved' : slot}
+                              title={isBooked ? 'This slot has already been reserved' : isPast ? 'This time has already passed today' : slot}
                             >
                               <span>{slot}</span>
                               {isBooked && <span className="booking__time-slot-tag">Reserved</span>}
+                              {!isBooked && isPast && <span className="booking__time-slot-tag">Passed</span>}
                             </button>
                           );
                         })}

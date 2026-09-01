@@ -32,7 +32,7 @@ function ContactOptionsModal({ onClose }: { onClose: () => void }) {
         <div className="contact-modal__options">
           {/* iMessage / SMS - English */}
           <a
-            href={`sms:${BUSINESS.phoneEN.replace(/\D/g, '')}`}
+            href={`sms:+${BUSINESS.phoneEN.replace(/\D/g, '')}`}
             className="contact-modal__option contact-modal__option--imessage"
             onClick={onClose}
           >
@@ -50,7 +50,7 @@ function ContactOptionsModal({ onClose }: { onClose: () => void }) {
 
           {/* iMessage / SMS - Portuguese & Spanish */}
           <a
-            href={`sms:${BUSINESS.phone.replace(/\D/g, '')}`}
+            href={`sms:+${BUSINESS.phone.replace(/\D/g, '')}`}
             className="contact-modal__option contact-modal__option--imessage"
             onClick={onClose}
           >
@@ -197,11 +197,11 @@ export default function Contact() {
                 </div>
                 <div>
                   <strong>Call Us</strong>
-                  <a href={`tel:${BUSINESS.phone.replace(/\D/g, '')}`} className="contact__phone-link">
+                  <a href={`tel:+${BUSINESS.phone.replace(/\D/g, '')}`} className="contact__phone-link">
                     {BUSINESS.phone}
                     <span className="contact__phone-lang">🇧🇷 PT &amp; 🇪🇸 ES</span>
                   </a>
-                  <a href={`tel:${BUSINESS.phoneEN.replace(/\D/g, '')}`} className="contact__phone-link">
+                  <a href={`tel:+${BUSINESS.phoneEN.replace(/\D/g, '')}`} className="contact__phone-link">
                     {BUSINESS.phoneEN}
                     <span className="contact__phone-lang">🇺🇸 EN</span>
                   </a>

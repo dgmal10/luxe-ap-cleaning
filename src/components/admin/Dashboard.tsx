@@ -247,8 +247,9 @@ export default function Dashboard() {
     const manageUrl = `${window.location.origin}/manage-booking?id=${booking.id}`;
 
     const text = `Hello ${booking.name}! ✨ LUXE A&P Cleaning here. Your personalized quote for ${booking.service} (${specs}) on ${booking.date} at ${booking.time} is $${price}.\n\nPlease reply YES to confirm. You can also view/manage your reservation here: ${manageUrl}\nHave a wonderful day!`;
-    const digits = cleanPhone(booking.phone);
-    return `sms:${digits}?&body=${encodeURIComponent(text)}`;
+    let digits = cleanPhone(booking.phone);
+    if (digits.length === 10) digits = '1' + digits;
+    return `sms:+${digits}?&body=${encodeURIComponent(text)}`;
   };
 
   // Quick WhatsApp Link

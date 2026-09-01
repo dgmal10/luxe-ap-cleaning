@@ -38,9 +38,18 @@ export default function Footer() {
 
           <div className="footer__contact">
             <h4 className="footer__heading">Contact</h4>
-            <div className="footer__contact-item">
+            <div className="footer__contact-item footer__contact-item--phones">
               <Phone size={16} />
-              <span>{BUSINESS.phone}</span>
+              <div className="footer__phones">
+                <a href={`tel:${BUSINESS.phone.replace(/\D/g, '')}`} className="footer__phone-link">
+                  {BUSINESS.phone}
+                  <span className="footer__phone-lang">🇧🇷 PT &amp; 🇪🇸 ES</span>
+                </a>
+                <a href={`tel:${BUSINESS.phoneEN.replace(/\D/g, '')}`} className="footer__phone-link">
+                  {BUSINESS.phoneEN}
+                  <span className="footer__phone-lang">🇺🇸 EN</span>
+                </a>
+              </div>
             </div>
             <div className="footer__contact-item">
               <Mail size={16} />

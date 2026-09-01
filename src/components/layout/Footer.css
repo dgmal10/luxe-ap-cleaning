@@ -102,6 +102,43 @@
   flex-shrink: 0;
 }
 
+.footer__contact-item--phones {
+  align-items: flex-start;
+}
+
+.footer__phones {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.footer__phone-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-gray-400);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.footer__phone-link:hover {
+  color: var(--color-gold);
+}
+
+.footer__phone-lang {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  background: rgba(var(--color-gold-rgb, 191, 155, 80), 0.15);
+  color: var(--color-gold);
+  border-radius: 4px;
+  padding: 1px 6px;
+  text-transform: uppercase;
+}
+
 .footer__trust {
   display: flex;
   flex-direction: column;

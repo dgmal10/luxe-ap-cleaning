@@ -128,6 +128,8 @@ export async function sendClientQuoteEmail(booking: Booking): Promise<boolean> {
 
   try {
     const quotePrice = booking.finalPrice || booking.estimatedPrice || 0;
+    const approveUrl = `${window.location.origin}/manage-booking?id=${booking.id}&action=approve`;
+    const declineUrl = `${window.location.origin}/manage-booking?id=${booking.id}&action=decline`;
     const manageUrl = `${window.location.origin}/manage-booking?id=${booking.id}`;
 
     const templateParams = {
@@ -155,8 +157,10 @@ export async function sendClientQuoteEmail(booking: Booking): Promise<boolean> {
       final_price: `$${quotePrice}`,
       estimated_price: `$${quotePrice}`,
       price: `$${quotePrice}`,
+      approve_url: approveUrl,
+      decline_url: declineUrl,
       manage_url: manageUrl,
-      message: `Great news! Our team has reviewed your home details and prepared your customized quote of $${quotePrice} for ${booking.service} on ${booking.date} at ${booking.time}. Please click the link below to review, approve or decline your quote so we can reserve your team!`,
+      message: `Great news! Our team has reviewed your home details and prepared your customized quote of $${quotePrice} for ${booking.service} on ${booking.date} at ${booking.time}. Please click one of the buttons below to approve or decline your quote so we can reserve your cleaning team!`,
       subject: `Your Customized Quote ($${quotePrice}): LUXE A&P Cleaning (${booking.date})`,
     };
 

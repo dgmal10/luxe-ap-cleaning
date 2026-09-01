@@ -25,6 +25,7 @@ import './ManageBooking.css';
 export default function ManageBooking() {
   const [searchParams] = useSearchParams();
   const urlBookingId = searchParams.get('id') || '';
+  const urlAction = searchParams.get('action') || '';
 
   const [searchId, setSearchId] = useState(urlBookingId);
   const [booking, setBooking] = useState<Booking | null>(null);
@@ -44,7 +45,7 @@ export default function ManageBooking() {
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
 
-  const fetchBooking = useCallback(async (idToFetch: string) => {
+  const fetchBooking = useCallback(async (idToFetch: string, action?: string) => {
     if (!idToFetch.trim()) return;
     setLoading(true);
     setError('');
@@ -56,6 +57,18 @@ export default function ManageBooking() {
       const found = await getBookingById(idToFetch.trim());
       if (found) {
         setBooking(found);
+        // Se o cliente clicou direto no botão de aprovar ou recusar dentro do e-mail:
+        if (action === 'approve' && (found.status === 'quote_sent' || found.status === 'pending')) {
+          setIsApproving(true);
+          await updateBookingStatus(found.id, 'confirmed');
+          const updated = { ...found, status: 'confirmed' as const };
+          setBooking(updated);
+          setApproveSuccess(true);
+          sendAdminQuoteApprovedAlert(updated).catch(() => {});
+          setIsApproving(false);
+        } else if (action === 'decline' && found.status === 'quote_sent') {
+          setShowDeclineModal(true);
+        }
       } else {
         setError('Appointment not found. Please check your reference code and try again.');
         setBooking(null);
@@ -70,9 +83,9 @@ export default function ManageBooking() {
 
   useEffect(() => {
     if (urlBookingId) {
-      fetchBooking(urlBookingId);
+      fetchBooking(urlBookingId, urlAction);
     }
-  }, [urlBookingId, fetchBooking]);
+  }, [urlBookingId, urlAction, fetchBooking]);
 
   /** Cliente APROVA o orçamento */
   const handleApproveQuote = async () => {

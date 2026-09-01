@@ -176,12 +176,31 @@ export default function Contact() {
 
     const errs: Partial<Record<keyof ContactForm, string>> = {};
     const cleanName = sanitizeText(form.name);
-    const cleanEmail = sanitizeText(form.email);
+    const cleanEmail = sanitizeText(form.email).toLowerCase();
     const cleanMessage = sanitizeText(form.message);
 
-    if (!cleanName) errs.name = 'Name is required';
-    if (!cleanEmail) errs.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) errs.email = 'Invalid email';
+    const nameParts = cleanName.split(/\s+/).filter(Boolean);
+    if (!cleanName) {
+      errs.name = 'Full name is required';
+    } else if (nameParts.length < 2 || nameParts[0].length < 2 || nameParts[1].length < 2) {
+      errs.name = 'Please enter your first and last name (e.g. John Smith)';
+    }
+
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+    if (!cleanEmail) {
+      errs.email = 'Email is required';
+    } else if (!emailRegex.test(cleanEmail) || !cleanEmail.includes('.')) {
+      errs.email = 'Please enter a valid email address';
+    } else if (
+      cleanEmail.endsWith('@gamil.com') ||
+      cleanEmail.endsWith('@gmai.com') ||
+      cleanEmail.endsWith('@hotmial.com') ||
+      cleanEmail.endsWith('@yaho.com') ||
+      cleanEmail.endsWith('@outlok.com')
+    ) {
+      errs.email = 'Please check for typos in your email domain';
+    }
+
     if (!cleanMessage) errs.message = 'Message is required';
     else if (cleanMessage.length < 10) errs.message = 'Message too short (min 10 characters)';
 

@@ -277,26 +277,40 @@ export default function Booking() {
       }
     }
     if (step === 3) {
+      const nameParts = form.name.trim().split(/\s+/).filter(Boolean);
       if (!form.name.trim()) {
         errs.name = 'Full name is required';
+      } else if (nameParts.length < 2 || nameParts[0].length < 2 || nameParts[1].length < 2) {
+        errs.name = 'Please enter your first and last name (e.g. John Smith)';
       }
       
-      const cleanEmail = form.email.trim();
+      const cleanEmail = form.email.trim().toLowerCase();
+      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
       if (!cleanEmail) {
-        errs.email = 'Email address is required';
-      } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(cleanEmail)) {
+        errs.email = 'Email address is required to receive your quote';
+      } else if (!emailRegex.test(cleanEmail) || !cleanEmail.includes('.')) {
         errs.email = 'Please enter a valid email address (e.g. yourname@example.com)';
+      } else if (
+        cleanEmail.endsWith('@gamil.com') ||
+        cleanEmail.endsWith('@gmai.com') ||
+        cleanEmail.endsWith('@hotmial.com') ||
+        cleanEmail.endsWith('@yaho.com') ||
+        cleanEmail.endsWith('@outlok.com')
+      ) {
+        errs.email = 'Please check for typos in your email domain (e.g. @gmail.com, @hotmail.com)';
       }
 
       const cleanPhoneDigits = form.phone.replace(/\D/g, '');
       if (!form.phone.trim()) {
         errs.phone = 'Phone number is required';
-      } else if (cleanPhoneDigits.length < 8) {
-        errs.phone = 'Please enter a valid phone number (at least 8 digits)';
+      } else if (cleanPhoneDigits.length < 10) {
+        errs.phone = 'Please enter a complete 10-digit phone number (e.g. (774) 280-9723)';
       }
 
       if (!form.address.trim()) {
         errs.address = 'Service address is required';
+      } else if (form.address.trim().length < 6) {
+        errs.address = 'Please enter a complete address (street name and number)';
       }
     }
 
@@ -808,15 +822,25 @@ export default function Booking() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="booking-phone" style={{ color: 'var(--color-gray-400)' }}>Phone Number (Mobile for SMS / WhatsApp confirmation)</label>
+                  <label className="form-label" htmlFor="booking-phone" style={{ color: 'var(--color-gray-400)' }}>Phone Number (Mobile for SMS / Confirmation)</label>
                   <input
                     id="booking-phone"
                     type="tel"
                     className={`form-input form-input-dark ${errors.phone ? 'error' : ''}`}
-                    placeholder="(508) 555-0123"
+                    placeholder="(774) 280-9723"
                     value={form.phone}
-                    onChange={e => set('phone', e.target.value)}
-                    maxLength={20}
+                    onChange={e => {
+                      const raw = e.target.value;
+                      const digits = raw.replace(/\D/g, '');
+                      let formatted = raw;
+                      if (digits.length > 0 && digits.length <= 10) {
+                        if (digits.length <= 3) formatted = `(${digits}`;
+                        else if (digits.length <= 6) formatted = `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+                        else formatted = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+                      }
+                      set('phone', formatted);
+                    }}
+                    maxLength={22}
                   />
                   {errors.phone && <p className="form-error">{errors.phone}</p>}
                 </div>

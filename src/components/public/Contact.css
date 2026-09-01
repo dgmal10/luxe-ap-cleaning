@@ -50,6 +50,36 @@
   color: var(--color-gray-500);
 }
 
+/* Phone links with language badges */
+.contact__phone-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
+  text-decoration: none;
+  font-weight: 500;
+  margin-top: 4px;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.contact__phone-link:hover {
+  color: var(--color-gold-dark);
+}
+
+.contact__phone-lang {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  background: var(--color-gold-muted);
+  color: var(--color-gold-dark);
+  border-radius: 4px;
+  padding: 1px 6px;
+  text-transform: uppercase;
+}
+
 /* WhatsApp CTA */
 .contact__whatsapp {
   display: flex;

@@ -106,7 +106,14 @@ export default function Contact() {
                 </div>
                 <div>
                   <strong>Call Us</strong>
-                  <span>{BUSINESS.phone}</span>
+                  <a href={`tel:${BUSINESS.phone.replace(/\D/g, '')}`} className="contact__phone-link">
+                    {BUSINESS.phone}
+                    <span className="contact__phone-lang">🇧🇷 PT &amp; 🇪🇸 ES</span>
+                  </a>
+                  <a href={`tel:${BUSINESS.phoneEN.replace(/\D/g, '')}`} className="contact__phone-link">
+                    {BUSINESS.phoneEN}
+                    <span className="contact__phone-lang">🇺🇸 EN</span>
+                  </a>
                 </div>
               </div>
 

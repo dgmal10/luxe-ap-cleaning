@@ -131,7 +131,8 @@ export const TIME_SLOTS = [
 export const BUSINESS = {
   name: 'LUXE A&P Cleaning',
   tagline: 'Premium Residential Services',
-  phone: '+1 (774) 360-4824',
+  phone: '+1 (774) 360-4824',       // PT / ES
+  phoneEN: '+1 (774) 280-9723',      // EN
   email: 'luxeaepcleaning@gmail.com',
   address: '123 Main Street',
   city: 'Worcester',

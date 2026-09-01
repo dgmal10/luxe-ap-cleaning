@@ -291,8 +291,8 @@ export default function Booking() {
       const cleanPhoneDigits = form.phone.replace(/\D/g, '');
       if (!form.phone.trim()) {
         errs.phone = 'Phone number is required';
-      } else if (cleanPhoneDigits.length < 10) {
-        errs.phone = 'Please enter a valid 10-digit phone number';
+      } else if (cleanPhoneDigits.length < 8) {
+        errs.phone = 'Please enter a valid phone number (at least 8 digits)';
       }
 
       if (!form.address.trim()) {
@@ -335,13 +335,13 @@ export default function Booking() {
       return;
     }
 
-    // 2. Flood / DDoS rate-limit protection (10 seconds cooldown)
+    // 2. Flood / DDoS rate-limit protection (2 seconds cooldown)
     const lastSubmitTime = parseInt(sessionStorage.getItem('luxe_last_booking_submit') || '0', 10);
     const now = Date.now();
-    if (now - lastSubmitTime < 10000) {
+    if (now - lastSubmitTime < 2000) {
       setErrors(prev => ({
         ...prev,
-        notes: 'Please wait a few seconds before submitting another reservation.',
+        notes: 'Please wait a moment before submitting again.',
       }));
       return;
     }

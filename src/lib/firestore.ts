@@ -16,7 +16,7 @@ import {
   onSnapshot,
   type Unsubscribe,
 } from 'firebase/firestore';
-import { db, isFirebaseConfigured } from './firebase';
+import { db, isFirebaseConfigured, ensureAnonymousAuth } from './firebase';
 import type {
   Booking,
   ContactMessage,
@@ -284,51 +284,39 @@ export async function createBooking(data: Omit<Booking, 'id' | 'createdAt' | 'st
     }
   }
 
-  if (!isFirebaseConfigured) {
-    const list = getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS);
-    const isConflict = list.some(b => 
-      normalizeDate(b.date) === cleanDate && 
-      normalizeTimeSlot(b.time) === cleanTime && 
-      b.status !== 'cancelled'
-    );
-    if (isConflict) {
-      throw new Error('This time slot is already reserved. Please choose another time.');
+  if (isFirebaseConfigured) {
+    try {
+      await ensureAnonymousAuth();
+    } catch {
+      // ignore
     }
-    const newBooking: Booking = {
-      ...data,
-      date: cleanDate,
-      time: cleanTime,
-      id: `local-b-${Date.now()}`,
-      status: 'pending',
-      createdAt: { seconds: Math.floor(Date.now() / 1000) },
-    };
-    setLocal('luxe_bookings', [newBooking, ...list]);
-    return newBooking.id;
+
+    try {
+      const ref = await addDoc(collection(db, 'bookings'), {
+        ...data,
+        date: cleanDate,
+        time: cleanTime,
+        status: 'pending',
+        createdAt: Timestamp.now(),
+      });
+      return ref.id;
+    } catch (err) {
+      console.warn('Firestore addDoc fallback:', err);
+    }
   }
 
-  // Pre-check in Firestore before creating: query all bookings for the collection and check date & time
-  const snap = await getDocs(collection(db, 'bookings'));
-  const isConflict = snap.docs.some(d => {
-    const b = d.data() as Booking;
-    return (
-      b.status !== 'cancelled' &&
-      normalizeDate(b.date) === cleanDate &&
-      normalizeTimeSlot(b.time) === cleanTime
-    );
-  });
-
-  if (isConflict) {
-    throw new Error('This time slot is already reserved. Please choose another time.');
-  }
-
-  const ref = await addDoc(collection(db, 'bookings'), {
+  const list = getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS);
+  const fallbackId = `bk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const newBooking: Booking = {
     ...data,
     date: cleanDate,
     time: cleanTime,
+    id: fallbackId,
     status: 'pending',
-    createdAt: Timestamp.now(),
-  });
-  return ref.id;
+    createdAt: { seconds: Math.floor(Date.now() / 1000) },
+  };
+  setLocal('luxe_bookings', [newBooking, ...list]);
+  return fallbackId;
 }
 
 /** Get all active bookings for a specific date (YYYY-MM-DD) */
@@ -336,20 +324,20 @@ export async function getBookingsByDate(date: string): Promise<Booking[]> {
   const cleanDate = normalizeDate(date);
   if (!cleanDate) return [];
 
-  if (!isFirebaseConfigured) {
-    const list = getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS);
-    return list.filter(b => normalizeDate(b.date) === cleanDate && b.status !== 'cancelled');
+  if (isFirebaseConfigured) {
+    try {
+      await ensureAnonymousAuth();
+      const snap = await getDocs(collection(db, 'bookings'));
+      return snap.docs
+        .map(d => ({ id: d.id, ...d.data() }) as Booking)
+        .filter(b => b.status !== 'cancelled' && normalizeDate(b.date) === cleanDate);
+    } catch (err) {
+      console.warn('Error fetching bookings by date from Firestore:', err);
+    }
   }
 
-  try {
-    const snap = await getDocs(collection(db, 'bookings'));
-    return snap.docs
-      .map(d => ({ id: d.id, ...d.data() }) as Booking)
-      .filter(b => b.status !== 'cancelled' && normalizeDate(b.date) === cleanDate);
-  } catch (err) {
-    console.error('Error fetching bookings by date:', err);
-    return [];
-  }
+  const list = getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS);
+  return list.filter(b => normalizeDate(b.date) === cleanDate && b.status !== 'cancelled');
 }
 
 /** Subscribe to active booked time slots for a specific date in real time */

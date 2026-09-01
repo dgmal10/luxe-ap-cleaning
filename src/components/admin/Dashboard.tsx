@@ -185,18 +185,35 @@ export default function Dashboard() {
 
   const handleStatusChange = async (id: string, status: Booking['status']) => {
     try {
-      await updateBookingStatus(id, status);
       const targetBooking = allBookings.find(b => b.id === id);
+      const customPrice = editingPrice[id];
+      const finalPrice = customPrice !== undefined && customPrice !== ''
+        ? Number(customPrice)
+        : (targetBooking?.finalPrice || targetBooking?.estimatedPrice || 0);
+
+      await updateBookingStatus(id, status);
+      if (customPrice !== undefined && customPrice !== '') {
+        await updateBookingPrice(id, finalPrice);
+      }
+
       if (targetBooking) {
-        const updatedBooking = { ...targetBooking, status };
+        const updatedBooking = { ...targetBooking, status, finalPrice };
         if (status === 'confirmed') {
-          sendClientConfirmationEmail(updatedBooking).catch(() => {});
-          setNotification(`✅ Agendamento de ${targetBooking.name} confirmado! E-mail enviado.`);
-          setTimeout(() => setNotification(null), 4000);
+          const sent = await sendClientConfirmationEmail(updatedBooking);
+          if (sent) {
+            setNotification(`✅ Agendamento de ${targetBooking.name} confirmado! E-mail com orçamento ($${finalPrice}) enviado ao cliente.`);
+          } else {
+            setNotification(`✅ Agendamento confirmado no sistema!`);
+          }
+          setTimeout(() => setNotification(null), 5000);
         } else if (status === 'cancelled') {
-          sendClientCancellationEmail(updatedBooking).catch(() => {});
-          setNotification(`❌ Agendamento de ${targetBooking.name} cancelado.`);
-          setTimeout(() => setNotification(null), 4000);
+          const sent = await sendClientCancellationEmail(updatedBooking, 'Cancelado pelo administrador');
+          if (sent) {
+            setNotification(`❌ Agendamento de ${targetBooking.name} cancelado! E-mail de aviso enviado ao cliente.`);
+          } else {
+            setNotification(`❌ Agendamento cancelado no sistema.`);
+          }
+          setTimeout(() => setNotification(null), 5000);
         }
       }
     } catch (err) {

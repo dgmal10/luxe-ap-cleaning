@@ -176,6 +176,10 @@ export async function sendClientCancellationEmail(booking: Booking, reason?: str
   }
 
   try {
+    const manageUrl = `${window.location.origin}/manage-booking?id=${booking.id}`;
+    const cancelReason = reason || 'Cancelled per customer request';
+    const quotePrice = booking.finalPrice || booking.estimatedPrice || 0;
+
     const templateParams = {
       to_name: booking.name,
       to_email: booking.email,
@@ -186,11 +190,24 @@ export async function sendClientCancellationEmail(booking: Booking, reason?: str
       client_phone: booking.phone,
       phone: booking.phone,
       service_name: booking.service,
+      service: booking.service,
       service_date: booking.date,
       date: booking.date,
       service_time: booking.time,
       time: booking.time,
-      cancel_reason: reason || 'Cancelled per customer request',
+      service_address: booking.address || 'On file',
+      address: booking.address || 'On file',
+      home_size: `${booking.bedrooms || 1} Bedroom(s), ${booking.bathrooms || 1} Bathroom(s)`,
+      selected_extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
+      extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
+      service_notes: booking.notes || 'None provided',
+      notes: booking.notes || 'None provided',
+      final_price: `$${quotePrice} (Cancelled)`,
+      estimated_price: `$${quotePrice}`,
+      price: `$${quotePrice}`,
+      manage_url: manageUrl,
+      cancel_reason: cancelReason,
+      message: `Your appointment for ${booking.service} on ${booking.date} at ${booking.time} has been officially cancelled (${cancelReason}). If you wish to reschedule in the future, please feel free to book again on our website!`,
       subject: `Appointment Cancelled: LUXE A&P Cleaning (${booking.date})`,
     };
 
@@ -212,6 +229,10 @@ export async function sendAdminCancellationAlert(booking: Booking, reason?: stri
   }
 
   try {
+    const manageUrl = `${window.location.origin}/admin`;
+    const cancelReason = reason || 'Customer cancelled via online self-service';
+    const quotePrice = booking.finalPrice || booking.estimatedPrice || 0;
+
     const templateParams = {
       to_name: 'LUXE A&P Team',
       to_email: 'luxeaepcleaning@gmail.com',
@@ -222,11 +243,24 @@ export async function sendAdminCancellationAlert(booking: Booking, reason?: stri
       client_phone: booking.phone,
       phone: booking.phone,
       service_name: booking.service,
+      service: booking.service,
       service_date: booking.date,
       date: booking.date,
       service_time: booking.time,
       time: booking.time,
-      cancel_reason: reason || 'Customer cancelled via online self-service',
+      service_address: booking.address || 'On file',
+      address: booking.address || 'On file',
+      home_size: `${booking.bedrooms || 1} Bedroom(s), ${booking.bathrooms || 1} Bathroom(s)`,
+      selected_extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
+      extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
+      service_notes: booking.notes || 'None provided',
+      notes: booking.notes || 'None provided',
+      final_price: `$${quotePrice}`,
+      estimated_price: `$${quotePrice}`,
+      price: `$${quotePrice}`,
+      manage_url: manageUrl,
+      cancel_reason: cancelReason,
+      message: `CUSTOMER CANCELLATION NOTICE:\n• Name: ${booking.name}\n• Phone: ${booking.phone}\n• Email: ${booking.email}\n• Reason: ${cancelReason}\n• Appointment: ${booking.service} on ${booking.date} at ${booking.time}`,
       subject: `Customer Cancelled: ${booking.name} (${booking.date} at ${booking.time})`,
     };
 

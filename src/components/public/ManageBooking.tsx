@@ -16,7 +16,6 @@ import { getBookingById, updateBookingStatus } from '../../lib/firestore';
 import {
   sendClientCancellationEmail,
   sendAdminCancellationAlert,
-  sendAdminQuoteApprovedAlert,
   sendAdminQuoteDeclinedAlert,
 } from '../../lib/email';
 import type { Booking } from '../../types';
@@ -64,7 +63,6 @@ export default function ManageBooking() {
           const updated = { ...found, status: 'confirmed' as const };
           setBooking(updated);
           setApproveSuccess(true);
-          sendAdminQuoteApprovedAlert(updated).catch(() => {});
           setIsApproving(false);
         } else if (action === 'decline' && found.status === 'quote_sent') {
           setShowDeclineModal(true);
@@ -96,9 +94,6 @@ export default function ManageBooking() {
       const updated = { ...booking, status: 'confirmed' as const };
       setBooking(updated);
       setApproveSuccess(true);
-
-      // Notifica o Admin por e-mail
-      await sendAdminQuoteApprovedAlert(updated);
     } catch (err) {
       console.error('Failed to approve quote:', err);
       alert('Could not confirm quote at this time. Please contact us directly.');

@@ -13,7 +13,12 @@ import {
 } from 'lucide-react';
 import { BUSINESS } from '../../lib/constants';
 import { getBookingById, updateBookingStatus } from '../../lib/firestore';
-import { sendClientCancellationEmail, sendAdminCancellationAlert } from '../../lib/email';
+import {
+  sendClientCancellationEmail,
+  sendAdminCancellationAlert,
+  sendAdminQuoteApprovedAlert,
+  sendAdminQuoteDeclinedAlert,
+} from '../../lib/email';
 import type { Booking } from '../../types';
 import './ManageBooking.css';
 
@@ -25,15 +30,27 @@ export default function ManageBooking() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Actions states
+  const [isApproving, setIsApproving] = useState(false);
+  const [isDeclining, setIsDeclining] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  
+  const [approveSuccess, setApproveSuccess] = useState(false);
+  const [declineSuccess, setDeclineSuccess] = useState(false);
   const [cancelSuccess, setCancelSuccess] = useState(false);
+  
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showDeclineModal, setShowDeclineModal] = useState(false);
+  const [declineReason, setDeclineReason] = useState('');
 
   const fetchBooking = useCallback(async (idToFetch: string) => {
     if (!idToFetch.trim()) return;
     setLoading(true);
     setError('');
     setCancelSuccess(false);
+    setApproveSuccess(false);
+    setDeclineSuccess(false);
 
     try {
       const found = await getBookingById(idToFetch.trim());
@@ -57,6 +74,48 @@ export default function ManageBooking() {
     }
   }, [urlBookingId, fetchBooking]);
 
+  /** Cliente APROVA o orçamento */
+  const handleApproveQuote = async () => {
+    if (!booking) return;
+    setIsApproving(true);
+    try {
+      await updateBookingStatus(booking.id, 'confirmed');
+      const updated = { ...booking, status: 'confirmed' as const };
+      setBooking(updated);
+      setApproveSuccess(true);
+
+      // Notifica o Admin por e-mail
+      await sendAdminQuoteApprovedAlert(updated);
+    } catch (err) {
+      console.error('Failed to approve quote:', err);
+      alert('Could not confirm quote at this time. Please contact us directly.');
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  /** Cliente RECUSA o orçamento */
+  const handleDeclineQuote = async () => {
+    if (!booking) return;
+    setIsDeclining(true);
+    try {
+      await updateBookingStatus(booking.id, 'cancelled');
+      const updated = { ...booking, status: 'cancelled' as const };
+      setBooking(updated);
+      setDeclineSuccess(true);
+      setShowDeclineModal(false);
+
+      // Notifica o Admin por e-mail
+      await sendAdminQuoteDeclinedAlert(updated, declineReason);
+    } catch (err) {
+      console.error('Failed to decline quote:', err);
+      alert('Could not update quote at this time. Please contact us directly.');
+    } finally {
+      setIsDeclining(false);
+    }
+  };
+
+  /** Cliente CANCELA um agendamento já existente */
   const handleCancelBooking = async () => {
     if (!booking) return;
     setIsCancelling(true);
@@ -67,7 +126,7 @@ export default function ManageBooking() {
       setCancelSuccess(true);
       setShowConfirmModal(false);
 
-      // Trigger background notification emails
+      // Dispara e-mails de cancelamento em background
       sendClientCancellationEmail(booking).catch(() => {});
       sendAdminCancellationAlert(booking).catch(() => {});
     } catch (err) {
@@ -77,6 +136,8 @@ export default function ManageBooking() {
       setIsCancelling(false);
     }
   };
+
+  const currentPrice = booking ? (booking.finalPrice || booking.estimatedPrice || 0) : 0;
 
   return (
     <div className="manage-booking">
@@ -93,7 +154,7 @@ export default function ManageBooking() {
           </Link>
           <h1 className="manage-booking__title">Manage Your Appointment</h1>
           <p className="manage-booking__subtitle">
-            Review your reservation details or cancel your appointment at any time.
+            Review your customized quote, confirm reservation, or manage your appointment schedule.
           </p>
         </div>
 
@@ -144,19 +205,89 @@ export default function ManageBooking() {
               </div>
               <span className={`manage-booking__badge manage-booking__badge--${booking.status}`}>
                 {booking.status === 'confirmed' && '✅ Confirmed'}
-                {booking.status === 'pending' && '⏳ Pending Review'}
+                {booking.status === 'quote_sent' && '⏳ Quote Awaiting Your Approval'}
+                {booking.status === 'pending' && '⏳ Quote Under Review'}
                 {booking.status === 'cancelled' && '❌ Cancelled'}
                 {booking.status === 'completed' && '✨ Completed'}
               </span>
             </div>
 
+            {/* Quote Approval Success Banner */}
+            {approveSuccess && (
+              <div className="manage-booking__alert-success animate-fade-in">
+                <CheckCircle size={26} />
+                <div>
+                  <strong>🎉 Quote Officially Approved!</strong>
+                  <p>Your appointment has been confirmed for <strong>{booking.date} at {booking.time}</strong> for <strong>${currentPrice}</strong>. Our professional cleaning crew has been scheduled for your home!</p>
+                </div>
+              </div>
+            )}
+
+            {/* Quote Decline Alert */}
+            {declineSuccess && (
+              <div className="manage-booking__alert-declined animate-fade-in">
+                <XCircle size={26} />
+                <div>
+                  <strong>Quote Declined</strong>
+                  <p>You have declined this quote. Your reservation has been cancelled and no charges apply. If you change your mind, you can book again anytime.</p>
+                </div>
+              </div>
+            )}
+
             {/* Cancel Success Alert */}
             {cancelSuccess && (
               <div className="manage-booking__alert-success animate-fade-in">
-                <CheckCircle size={24} />
+                <CheckCircle size={26} />
                 <div>
                   <strong>Appointment Successfully Cancelled</strong>
                   <p>Your reservation has been cancelled and your time slot has been released. A cancellation receipt has been logged.</p>
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================
+                QUOTE APPROVAL ACTION CARD (When status is quote_sent)
+               ============================================================ */}
+            {booking.status === 'quote_sent' && !approveSuccess && !declineSuccess && (
+              <div className="manage-booking__quote-box animate-fade-in">
+                <div className="manage-booking__quote-header">
+                  <Sparkles size={24} className="gold-text" />
+                  <div>
+                    <h3 className="manage-booking__quote-title">Your Official Cleaning Quote is Ready!</h3>
+                    <p className="manage-booking__quote-desc">
+                      Our team reviewed your home specifications and prepared your customized price:
+                    </p>
+                  </div>
+                </div>
+
+                <div className="manage-booking__quote-price-card">
+                  <span className="manage-booking__quote-price-label">Official Quote Price</span>
+                  <strong className="manage-booking__quote-price-val">${currentPrice}</strong>
+                  <span className="manage-booking__quote-price-sub">All supplies &amp; selected extras included</span>
+                </div>
+
+                <div className="manage-booking__quote-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-lg"
+                    style={{ flex: '1 1 240px', fontSize: '15px' }}
+                    disabled={isApproving}
+                    onClick={handleApproveQuote}
+                  >
+                    <CheckCircle size={18} />
+                    {isApproving ? 'Confirming Appointment...' : `Approve & Confirm ($${currentPrice})`}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger"
+                    style={{ flex: '0 1 160px' }}
+                    disabled={isApproving}
+                    onClick={() => setShowDeclineModal(true)}
+                  >
+                    <XCircle size={18} />
+                    Decline Quote
+                  </button>
                 </div>
               </div>
             )}
@@ -199,15 +330,15 @@ export default function ManageBooking() {
 
               {booking.finalPrice ? (
                 <div className="manage-booking__item manage-booking__item--highlight">
-                  <span className="manage-booking__price-label">Confirmed Quote Price:</span>
+                  <span className="manage-booking__price-label">Official Quote Price:</span>
                   <strong className="manage-booking__price-val">${booking.finalPrice}</strong>
                 </div>
               ) : null}
             </div>
 
-            {/* Action Buttons */}
+            {/* Footer Action Buttons */}
             <div className="manage-booking__actions">
-              {booking.status !== 'cancelled' && booking.status !== 'completed' && (
+              {booking.status !== 'cancelled' && booking.status !== 'completed' && booking.status !== 'quote_sent' && (
                 <button
                   type="button"
                   className="btn btn-outline-danger"
@@ -236,7 +367,52 @@ export default function ManageBooking() {
           </div>
         )}
 
-        {/* Confirmation Modal */}
+        {/* Modal: Recusar Orçamento */}
+        {showDeclineModal && (
+          <div className="manage-booking__modal-backdrop animate-fade-in">
+            <div className="manage-booking__modal animate-fade-in-up">
+              <AlertTriangle size={42} className="manage-booking__modal-icon" />
+              <h3>Decline this Cleaning Quote?</h3>
+              <p>
+                Are you sure you wish to decline the <strong>${currentPrice}</strong> quote for <strong>{booking?.service} on {booking?.date}</strong>?
+              </p>
+              
+              <div style={{ margin: '14px 0', textAlign: 'left' }}>
+                <label style={{ fontSize: '12px', color: 'var(--color-gray-400)', display: 'block', marginBottom: '4px' }}>
+                  Optional: Tell us why (price, schedule change, etc.)
+                </label>
+                <textarea
+                  className="form-textarea form-textarea-dark"
+                  rows={2}
+                  placeholder="Reason (optional)"
+                  value={declineReason}
+                  onChange={e => setDeclineReason(e.target.value)}
+                />
+              </div>
+
+              <div className="manage-booking__modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  disabled={isDeclining}
+                  onClick={handleDeclineQuote}
+                >
+                  {isDeclining ? 'Declining...' : 'Yes, Decline Quote'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-gold"
+                  disabled={isDeclining}
+                  onClick={() => setShowDeclineModal(false)}
+                >
+                  Keep Quote
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Cancelar Agendamento */}
         {showConfirmModal && (
           <div className="manage-booking__modal-backdrop animate-fade-in">
             <div className="manage-booking__modal animate-fade-in-up">

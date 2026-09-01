@@ -64,7 +64,7 @@ export interface Booking {
   phone: string;
   address: string;
   notes: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'pending' | 'quote_sent' | 'confirmed' | 'completed' | 'cancelled';
   createdAt: unknown; // Timestamp do Firestore
 }
 

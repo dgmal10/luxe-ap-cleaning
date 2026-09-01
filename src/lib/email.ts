@@ -120,8 +120,8 @@ export async function sendClientReceiptEmail(booking: BookingFormData, bookingId
   }
 }
 
-/** 2º E-mail para o CLIENTE: Enviado pelo ADM quando define o orçamento e confirma */
-export async function sendClientConfirmationEmail(booking: Booking): Promise<boolean> {
+/** 2º E-mail para o CLIENTE: Enviado pelo ADM com o orçamento pronto para aprovação */
+export async function sendClientQuoteEmail(booking: Booking): Promise<boolean> {
   if (!isEmailConfigured) {
     return false;
   }
@@ -132,7 +132,7 @@ export async function sendClientConfirmationEmail(booking: Booking): Promise<boo
 
     const templateParams = {
       to_name: booking.name,
-      to_email: booking.email, // Chega ao e-mail do Cliente com o preço definido pelo ADM
+      to_email: booking.email,
       client_name: booking.name,
       name: booking.name,
       client_email: booking.email,
@@ -150,11 +150,167 @@ export async function sendClientConfirmationEmail(booking: Booking): Promise<boo
       home_size: `${booking.bedrooms || 1} Bedroom(s), ${booking.bathrooms || 1} Bathroom(s)`,
       selected_extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
       extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
+      service_notes: booking.notes || 'None provided',
+      notes: booking.notes || 'None provided',
       final_price: `$${quotePrice}`,
       estimated_price: `$${quotePrice}`,
       price: `$${quotePrice}`,
       manage_url: manageUrl,
-      message: `Your customized quote for ${booking.service} on ${booking.date} at ${booking.time} is $${quotePrice}. Your appointment has been officially confirmed!`,
+      message: `Great news! Our team has reviewed your home details and prepared your customized quote of $${quotePrice} for ${booking.service} on ${booking.date} at ${booking.time}. Please click the link below to review, approve or decline your quote so we can reserve your team!`,
+      subject: `Your Customized Quote ($${quotePrice}): LUXE A&P Cleaning (${booking.date})`,
+    };
+
+    const res = await emailjs.send(SERVICE_ID, CONFIRM_TEMPLATE_ID, templateParams, {
+      publicKey: PUBLIC_KEY,
+    });
+    console.log('[EmailJS] E-mail de orçamento para cliente enviado:', res.status, res.text);
+    return true;
+  } catch (error) {
+    console.error('[EmailJS] Falha ao enviar e-mail de orçamento para cliente:', error);
+    return false;
+  }
+}
+
+/** Notifica o Admin que o cliente APROVOU o orçamento */
+export async function sendAdminQuoteApprovedAlert(booking: Booking): Promise<boolean> {
+  if (!isEmailConfigured) {
+    return false;
+  }
+
+  try {
+    const quotePrice = booking.finalPrice || booking.estimatedPrice || 0;
+    const manageUrl = `${window.location.origin}/admin`;
+
+    const templateParams = {
+      to_name: 'LUXE A&P Team',
+      to_email: 'luxeaepcleaning@gmail.com',
+      client_name: booking.name,
+      name: booking.name,
+      client_email: booking.email,
+      email: booking.email,
+      client_phone: booking.phone,
+      phone: booking.phone,
+      service_name: booking.service,
+      service: booking.service,
+      service_date: booking.date,
+      date: booking.date,
+      service_time: booking.time,
+      time: booking.time,
+      service_address: booking.address,
+      address: booking.address,
+      home_size: `${booking.bedrooms || 1} Bedroom(s), ${booking.bathrooms || 1} Bathroom(s)`,
+      selected_extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
+      extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
+      service_notes: booking.notes || 'None provided',
+      notes: booking.notes || 'None provided',
+      final_price: `$${quotePrice} (Approved by Client)`,
+      estimated_price: `$${quotePrice}`,
+      price: `$${quotePrice}`,
+      manage_url: manageUrl,
+      message: `🎉 GREAT NEWS! Customer ${booking.name} has officially APPROVED your quote of $${quotePrice} for ${booking.service} on ${booking.date} at ${booking.time}. The appointment is now CONFIRMED!`,
+      subject: `Quote Approved by Client: ${booking.name} ($${quotePrice}) — ${booking.date}`,
+    };
+
+    const res = await emailjs.send(SERVICE_ID, BOOKING_TEMPLATE_ID, templateParams, {
+      publicKey: PUBLIC_KEY,
+    });
+    console.log('[EmailJS] Alerta de aprovação de orçamento enviado ao admin:', res.status, res.text);
+    return true;
+  } catch (error) {
+    console.error('[EmailJS] Falha ao enviar alerta de aprovação para admin:', error);
+    return false;
+  }
+}
+
+/** Notifica o Admin que o cliente RECUSOU o orçamento */
+export async function sendAdminQuoteDeclinedAlert(booking: Booking, reason?: string): Promise<boolean> {
+  if (!isEmailConfigured) {
+    return false;
+  }
+
+  try {
+    const quotePrice = booking.finalPrice || booking.estimatedPrice || 0;
+    const manageUrl = `${window.location.origin}/admin`;
+    const declineReason = reason || 'Customer declined the quote';
+
+    const templateParams = {
+      to_name: 'LUXE A&P Team',
+      to_email: 'luxeaepcleaning@gmail.com',
+      client_name: booking.name,
+      name: booking.name,
+      client_email: booking.email,
+      email: booking.email,
+      client_phone: booking.phone,
+      phone: booking.phone,
+      service_name: booking.service,
+      service: booking.service,
+      service_date: booking.date,
+      date: booking.date,
+      service_time: booking.time,
+      time: booking.time,
+      service_address: booking.address,
+      address: booking.address,
+      home_size: `${booking.bedrooms || 1} Bedroom(s), ${booking.bathrooms || 1} Bathroom(s)`,
+      selected_extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
+      extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
+      service_notes: booking.notes || 'None provided',
+      notes: booking.notes || 'None provided',
+      final_price: `$${quotePrice} (Declined)`,
+      estimated_price: `$${quotePrice}`,
+      price: `$${quotePrice}`,
+      manage_url: manageUrl,
+      message: `CUSTOMER DECLINED QUOTE:\n• Customer: ${booking.name}\n• Phone: ${booking.phone}\n• Email: ${booking.email}\n• Quote Value: $${quotePrice}\n• Service: ${booking.service} on ${booking.date} at ${booking.time}\n• Reason/Feedback: ${declineReason}`,
+      subject: `Quote Declined by Customer: ${booking.name} ($${quotePrice})`,
+    };
+
+    const res = await emailjs.send(SERVICE_ID, BOOKING_TEMPLATE_ID, templateParams, {
+      publicKey: PUBLIC_KEY,
+    });
+    console.log('[EmailJS] Alerta de recusa de orçamento enviado ao admin:', res.status, res.text);
+    return true;
+  } catch (error) {
+    console.error('[EmailJS] Falha ao enviar alerta de recusa para admin:', error);
+    return false;
+  }
+}
+
+/** E-mail de confirmação final direta para o Cliente */
+export async function sendClientConfirmationEmail(booking: Booking): Promise<boolean> {
+  if (!isEmailConfigured) {
+    return false;
+  }
+
+  try {
+    const quotePrice = booking.finalPrice || booking.estimatedPrice || 0;
+    const manageUrl = `${window.location.origin}/manage-booking?id=${booking.id}`;
+
+    const templateParams = {
+      to_name: booking.name,
+      to_email: booking.email,
+      client_name: booking.name,
+      name: booking.name,
+      client_email: booking.email,
+      email: booking.email,
+      client_phone: booking.phone,
+      phone: booking.phone,
+      service_name: booking.service,
+      service: booking.service,
+      service_date: booking.date,
+      date: booking.date,
+      service_time: booking.time,
+      time: booking.time,
+      service_address: booking.address,
+      address: booking.address,
+      home_size: `${booking.bedrooms || 1} Bedroom(s), ${booking.bathrooms || 1} Bathroom(s)`,
+      selected_extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
+      extras: booking.extras && booking.extras.length > 0 ? booking.extras.join(', ') : 'None',
+      service_notes: booking.notes || 'None provided',
+      notes: booking.notes || 'None provided',
+      final_price: `$${quotePrice}`,
+      estimated_price: `$${quotePrice}`,
+      price: `$${quotePrice}`,
+      manage_url: manageUrl,
+      message: `Your appointment for ${booking.service} on ${booking.date} at ${booking.time} has been officially confirmed at $${quotePrice}. We look forward to serving you!`,
       subject: `Appointment Confirmed: LUXE A&P Cleaning (${booking.date})`,
     };
 

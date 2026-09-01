@@ -33,7 +33,7 @@ import {
   deleteBooking,
 } from '../../lib/firestore';
 import type { Booking, ContactMessage } from '../../types';
-import { sendClientConfirmationEmail, sendClientCancellationEmail } from '../../lib/email';
+import { sendClientQuoteEmail, sendClientConfirmationEmail, sendClientCancellationEmail } from '../../lib/email';
 import './Dashboard.css';
 
 function formatDate(date: Date): string {
@@ -90,13 +90,14 @@ function playNotificationChime() {
 }
 
 const STATUS_CONFIG = {
-  pending: { label: 'Pendente', color: 'var(--color-warning)', icon: <AlertCircle size={14} /> },
-  confirmed: { label: 'Confirmado', color: 'var(--color-info)', icon: <Clock size={14} /> },
-  completed: { label: 'Concluído', color: 'var(--color-success)', icon: <CheckCircle size={14} /> },
-  cancelled: { label: 'Cancelado', color: 'var(--color-error)', icon: <XCircle size={14} /> },
+  pending: { label: 'Novo Pedido', color: 'var(--color-warning)', icon: <AlertCircle size={14} /> },
+  quote_sent: { label: 'Aguardando Cliente', color: '#9b59b6', icon: <Clock size={14} /> },
+  confirmed: { label: 'Confirmado / Aprovado', color: 'var(--color-success)', icon: <CheckCircle size={14} /> },
+  completed: { label: 'Concluído', color: 'var(--color-info)', icon: <CheckCircle size={14} /> },
+  cancelled: { label: 'Cancelado / Recusado', color: 'var(--color-error)', icon: <XCircle size={14} /> },
 };
 
-type FilterTab = 'all' | 'pending' | 'confirmed' | 'date';
+type FilterTab = 'all' | 'pending' | 'quote_sent' | 'confirmed' | 'date';
 
 export default function Dashboard() {
   const [allBookings, setAllBookings] = useState<Booking[]>([]);
@@ -198,10 +199,18 @@ export default function Dashboard() {
 
       if (targetBooking) {
         const updatedBooking = { ...targetBooking, status, finalPrice };
-        if (status === 'confirmed') {
+        if (status === 'quote_sent') {
+          const sent = await sendClientQuoteEmail(updatedBooking);
+          if (sent) {
+            setNotification(`📤 Orçamento oficial ($${finalPrice}) enviado para ${targetBooking.name}! Aguardando aprovação.`);
+          } else {
+            setNotification(`📤 Orçamento atualizado no sistema.`);
+          }
+          setTimeout(() => setNotification(null), 5000);
+        } else if (status === 'confirmed') {
           const sent = await sendClientConfirmationEmail(updatedBooking);
           if (sent) {
-            setNotification(`✅ Agendamento de ${targetBooking.name} confirmado! E-mail com orçamento ($${finalPrice}) enviado ao cliente.`);
+            setNotification(`✅ Agendamento de ${targetBooking.name} confirmado! E-mail com orçamento ($${finalPrice}) enviado.`);
           } else {
             setNotification(`✅ Agendamento confirmado no sistema!`);
           }
@@ -209,11 +218,14 @@ export default function Dashboard() {
         } else if (status === 'cancelled') {
           const sent = await sendClientCancellationEmail(updatedBooking, 'Cancelado pelo administrador');
           if (sent) {
-            setNotification(`❌ Agendamento de ${targetBooking.name} cancelado! E-mail de aviso enviado ao cliente.`);
+            setNotification(`❌ Agendamento de ${targetBooking.name} cancelado! E-mail de aviso enviado.`);
           } else {
             setNotification(`❌ Agendamento cancelado no sistema.`);
           }
           setTimeout(() => setNotification(null), 5000);
+        } else if (status === 'completed') {
+          setNotification(`✨ Agendamento de ${targetBooking.name} marcado como Concluído!`);
+          setTimeout(() => setNotification(null), 4000);
         }
       }
     } catch (err) {
@@ -303,11 +315,15 @@ export default function Dashboard() {
   let displayedBookings = allBookings;
   if (activeTab === 'pending') {
     displayedBookings = allBookings.filter(b => b.status === 'pending');
+  } else if (activeTab === 'quote_sent') {
+    displayedBookings = allBookings.filter(b => b.status === 'quote_sent');
   } else if (activeTab === 'confirmed') {
     displayedBookings = allBookings.filter(b => b.status === 'confirmed');
   } else if (activeTab === 'date') {
     displayedBookings = allBookings.filter(b => b.date === selectedDate);
   }
+
+  const quoteSentBookings = allBookings.filter(b => b.status === 'quote_sent').length;
 
   return (
     <div className="dashboard">
@@ -327,7 +343,7 @@ export default function Dashboard() {
             <Bell size={20} className="dashboard__notif-banner-icon" />
             <div>
               <strong>Ativar Alertas no Celular e Computador</strong>
-              <p>Receba notificações com som e vibração no celular/PC sempre que um novo cliente agendar.</p>
+              <p>Receba notificações com som e vibração no celular/PC sempre que um novo cliente agendar ou aprovar orçamento.</p>
             </div>
           </div>
           <button className="btn btn-sm btn-primary" onClick={requestNotificationAccess}>
@@ -341,7 +357,7 @@ export default function Dashboard() {
         <div>
           <h1 className="dashboard__title">Painel de Controle</h1>
           <p className="dashboard__date">
-            Acompanhamento em tempo real, orçamentos e mensagens
+            Acompanhamento em tempo real, aprovação de orçamentos e mensagens
           </p>
         </div>
         <div className="dashboard__live-indicator">
@@ -362,7 +378,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="dashboard__metric-value">{allBookings.length}</p>
-            <p className="dashboard__metric-label">Total de Agendamentos</p>
+            <p className="dashboard__metric-label">Total</p>
           </div>
         </div>
 
@@ -376,7 +392,21 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="dashboard__metric-value">{pendingBookings}</p>
-            <p className="dashboard__metric-label">Pendentes</p>
+            <p className="dashboard__metric-label">Novos Pedidos</p>
+          </div>
+        </div>
+
+        <div
+          className={`dashboard__metric-card ${activeTab === 'quote_sent' ? 'dashboard__metric-card--selected' : ''}`}
+          onClick={() => setActiveTab('quote_sent')}
+          style={{ cursor: 'pointer' }}
+        >
+          <div className="dashboard__metric-icon" style={{ background: 'rgba(155, 89, 182, 0.2)', color: '#c39bd3' }}>
+            <Clock size={22} />
+          </div>
+          <div>
+            <p className="dashboard__metric-value">{quoteSentBookings}</p>
+            <p className="dashboard__metric-label">Aguardando Cliente</p>
           </div>
         </div>
 
@@ -385,8 +415,8 @@ export default function Dashboard() {
           onClick={() => setActiveTab('confirmed')}
           style={{ cursor: 'pointer' }}
         >
-          <div className="dashboard__metric-icon dashboard__metric-icon--info">
-            <Clock size={22} />
+          <div className="dashboard__metric-icon dashboard__metric-icon--success">
+            <CheckCircle size={22} />
           </div>
           <div>
             <p className="dashboard__metric-value">{confirmedBookings}</p>
@@ -395,12 +425,12 @@ export default function Dashboard() {
         </div>
 
         <div className="dashboard__metric-card">
-          <div className="dashboard__metric-icon dashboard__metric-icon--success">
+          <div className="dashboard__metric-icon" style={{ background: 'rgba(52, 152, 219, 0.15)', color: '#3498db' }}>
             <MessageSquare size={22} />
           </div>
           <div>
             <p className="dashboard__metric-value">{unreadMessages}</p>
-            <p className="dashboard__metric-label">Mensagens Não Lidas</p>
+            <p className="dashboard__metric-label">Mensagens</p>
           </div>
         </div>
       </div>
@@ -420,7 +450,14 @@ export default function Dashboard() {
             onClick={() => setActiveTab('pending')}
           >
             <AlertCircle size={15} />
-            Pendentes ({pendingBookings})
+            Novos ({pendingBookings})
+          </button>
+          <button
+            className={`dashboard__tab ${activeTab === 'quote_sent' ? 'dashboard__tab--active' : ''}`}
+            onClick={() => setActiveTab('quote_sent')}
+          >
+            <Clock size={15} />
+            Aguardando Cliente ({quoteSentBookings})
           </button>
           <button
             className={`dashboard__tab ${activeTab === 'confirmed' ? 'dashboard__tab--active' : ''}`}
@@ -696,12 +733,21 @@ export default function Dashboard() {
                         {booking.status === 'pending' && (
                           <>
                             <button
+                              className="btn btn-sm btn-primary"
+                              onClick={() => handleStatusChange(booking.id, 'quote_sent')}
+                              title="Enviar orçamento oficial para o e-mail do cliente aprovar"
+                            >
+                              <Sparkles size={14} />
+                              📤 Enviar Orçamento (${getQuotePrice(booking)})
+                            </button>
+                            <button
                               className="btn btn-sm"
                               style={{ background: 'var(--color-info)', color: '#fff' }}
                               onClick={() => handleStatusChange(booking.id, 'confirmed')}
+                              title="Confirmar diretamente"
                             >
                               <CheckCircle size={14} />
-                              Confirmar Agendamento
+                              Confirmar Direto
                             </button>
                             <button
                               className="btn btn-sm"
@@ -713,6 +759,42 @@ export default function Dashboard() {
                             </button>
                           </>
                         )}
+
+                        {booking.status === 'quote_sent' && (
+                          <>
+                            <div style={{ width: '100%', padding: '8px 12px', background: 'rgba(155, 89, 182, 0.15)', border: '1px solid rgba(155, 89, 182, 0.35)', borderRadius: 'var(--radius-md)', color: '#d2b4de', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Clock size={16} style={{ color: '#c39bd3', flexShrink: 0 }} />
+                              <span>Orçamento oficial de <strong>${getQuotePrice(booking)}</strong> enviado por e-mail. Aguardando aprovação do cliente.</span>
+                            </div>
+                            <button
+                              className="btn btn-sm"
+                              style={{ background: 'rgba(155, 89, 182, 0.25)', color: '#e8daef', border: '1px solid rgba(155, 89, 182, 0.4)' }}
+                              onClick={() => handleStatusChange(booking.id, 'quote_sent')}
+                              title="Reenviar e-mail de orçamento para o cliente"
+                            >
+                              <Mail size={14} />
+                              Reenviar E-mail
+                            </button>
+                            <button
+                              className="btn btn-sm"
+                              style={{ background: 'var(--color-success)', color: '#fff' }}
+                              onClick={() => handleStatusChange(booking.id, 'confirmed')}
+                              title="Aprovar manualmente se o cliente confirmou por telefone/WhatsApp"
+                            >
+                              <CheckCircle size={14} />
+                              Aprovar Manualmente
+                            </button>
+                            <button
+                              className="btn btn-sm"
+                              style={{ background: 'rgba(231,76,60,0.15)', color: 'var(--color-error)' }}
+                              onClick={() => handleStatusChange(booking.id, 'cancelled')}
+                            >
+                              <XCircle size={14} />
+                              Recusar / Cancelar
+                            </button>
+                          </>
+                        )}
+
                         {booking.status === 'confirmed' && (
                           <button
                             className="btn btn-sm"

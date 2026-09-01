@@ -150,6 +150,13 @@
   color: #2ecc71;
 }
 
+.manage-booking__badge--quote_sent {
+  background: rgba(155, 89, 182, 0.2);
+  border: 1px solid rgba(155, 89, 182, 0.4);
+  color: #c39bd3;
+  animation: pulse 2s infinite;
+}
+
 .manage-booking__badge--pending {
   background: rgba(243, 156, 18, 0.15);
   border: 1px solid rgba(243, 156, 18, 0.35);
@@ -177,6 +184,92 @@
   margin: 2px 0 0;
   font-size: var(--text-xs);
   color: rgba(255, 255, 255, 0.85);
+}
+
+.manage-booking__alert-declined {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: rgba(231, 76, 60, 0.12);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  border-radius: var(--radius-md);
+  color: #e74c3c;
+  margin-bottom: var(--space-5);
+}
+
+.manage-booking__alert-declined p {
+  margin: 2px 0 0;
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Quote Approval Action Card */
+.manage-booking__quote-box {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.12) 0%, rgba(20, 20, 20, 0.8) 100%);
+  border: 2px solid rgba(212, 175, 55, 0.4);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-bottom: var(--space-6);
+  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.15);
+}
+
+.manage-booking__quote-header {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  margin-bottom: var(--space-4);
+}
+
+.manage-booking__quote-title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-white);
+  margin: 0 0 4px 0;
+}
+
+.manage-booking__quote-desc {
+  font-size: var(--text-sm);
+  color: var(--color-gray-300);
+  margin: 0;
+}
+
+.manage-booking__quote-price-card {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  text-align: center;
+  margin-bottom: var(--space-5);
+}
+
+.manage-booking__quote-price-label {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.manage-booking__quote-price-val {
+  display: block;
+  font-size: 36px;
+  color: var(--color-gold);
+  font-family: var(--font-heading);
+  line-height: 1.2;
+}
+
+.manage-booking__quote-price-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--color-gray-400);
+  margin-top: 4px;
+}
+
+.manage-booking__quote-actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
 .manage-booking__grid {

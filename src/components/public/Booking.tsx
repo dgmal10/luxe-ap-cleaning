@@ -608,14 +608,14 @@ export default function Booking() {
                       <span>Bathrooms</span>
                     </div>
                     <div className="booking__counter-buttons">
-                      {[1, 1.5, 2, 2.5, 3, 4].map(num => (
+                      {[1, 2, 3, 4, 5].map(num => (
                         <button
                           key={num}
                           type="button"
                           className={`booking__counter-btn ${form.bathrooms === num ? 'booking__counter-btn--active' : ''}`}
                           onClick={() => set('bathrooms', num)}
                         >
-                          {num >= 4 ? '4+' : num}
+                          {num >= 5 ? '5+' : num}
                         </button>
                       ))}
                     </div>

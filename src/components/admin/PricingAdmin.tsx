@@ -284,7 +284,7 @@ export default function PricingAdmin() {
                 <Bath size={18} />
                 <div>
                   <strong>Por Banheiro Adicional (+1)</strong>
-                  <span>Cobrado para 1.5, 2, 2.5, 3 ou 4+ banheiros</span>
+                  <span>Cobrado para 2, 3, 4 ou 5+ banheiros</span>
                 </div>
               </div>
               <div className="pricing-admin__input-group">
@@ -346,7 +346,7 @@ export default function PricingAdmin() {
             <div>
               <label style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--color-gray-400)', marginBottom: '4px' }}>Banheiros ({simBaths})</label>
               <div style={{ display: 'flex', gap: '4px' }}>
-                {[1, 2, 3, 4].map(b => (
+                {[1, 2, 3, 4, 5].map(b => (
                   <button
                     key={b}
                     type="button"

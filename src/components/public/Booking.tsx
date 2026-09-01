@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Copy,
   ExternalLink,
+  Mail,
 } from 'lucide-react';
 import {
   SERVICES,
@@ -495,8 +496,28 @@ export default function Booking() {
             )}
 
             <p className="booking__success-sub">
-              Our team is reviewing your home specifications ({form.bedrooms} Bed, {form.bathrooms} Bath) and will send your customized quote and confirmation details shortly via WhatsApp, SMS / iMessage, or Email.
+              Our team is reviewing your home specifications ({form.bedrooms} Bed, {form.bathrooms} Bath) and will send your customized quote and confirmation details shortly.
             </p>
+
+            <div
+              style={{
+                background: 'rgba(212, 175, 55, 0.08)',
+                border: '1px solid rgba(212, 175, 55, 0.25)',
+                borderRadius: 'var(--radius-md)',
+                padding: '12px 16px',
+                margin: '16px auto 24px',
+                maxWidth: '480px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                textAlign: 'left',
+              }}
+            >
+              <Mail size={22} style={{ color: 'var(--color-gold)', flexShrink: 0 }} />
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-gray-300)', lineHeight: '1.4' }}>
+                A confirmation receipt was sent to <strong>{form.email}</strong>. If you don't see it in your inbox, please check your <strong>Spam / Junk</strong> folder.
+              </p>
+            </div>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <a
                 href={BUSINESS.whatsapp}

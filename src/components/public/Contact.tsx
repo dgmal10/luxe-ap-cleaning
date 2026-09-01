@@ -66,7 +66,7 @@ function ContactOptionsModal({ onClose }: { onClose: () => void }) {
             </div>
           </a>
 
-          {/* iMessage / SMS - English */}
+          {/* Text Message (SMS / iMessage) - English */}
           <a
             href={`sms:+${BUSINESS.phoneEN.replace(/\D/g, '')}`}
             className="contact-modal__option contact-modal__option--imessage"
@@ -77,14 +77,14 @@ function ContactOptionsModal({ onClose }: { onClose: () => void }) {
             </div>
             <div className="contact-modal__option-text">
               <div className="contact-modal__option-header">
-                <strong>iMessage / SMS</strong>
+                <strong>Text Message</strong>
                 <span className="contact-modal__tag">🇺🇸 English</span>
               </div>
-              <small>{BUSINESS.phoneEN}</small>
+              <small>SMS &amp; iMessage: {BUSINESS.phoneEN}</small>
             </div>
           </a>
 
-          {/* iMessage / SMS - Portuguese & Spanish */}
+          {/* Text Message (SMS / iMessage) - Portuguese & Spanish */}
           <a
             href={`sms:+${BUSINESS.phone.replace(/\D/g, '')}`}
             className="contact-modal__option contact-modal__option--imessage"
@@ -95,10 +95,10 @@ function ContactOptionsModal({ onClose }: { onClose: () => void }) {
             </div>
             <div className="contact-modal__option-text">
               <div className="contact-modal__option-header">
-                <strong>iMessage / SMS</strong>
+                <strong>Text Message</strong>
                 <span className="contact-modal__tag">🇧🇷 PT &amp; 🇪🇸 ES</span>
               </div>
-              <small>{BUSINESS.phone}</small>
+              <small>SMS &amp; iMessage: {BUSINESS.phone}</small>
             </div>
           </a>
 
@@ -274,8 +274,8 @@ export default function Contact() {
             >
               <MessageCircle size={24} />
               <div>
-                <strong>Quick Message / Chat</strong>
-                <span>WhatsApp, iMessage &amp; Email</span>
+                <strong>Quick Connect / Chat</strong>
+                <span>Call, Text, WhatsApp &amp; Email</span>
               </div>
             </button>
           </div>

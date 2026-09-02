@@ -34,6 +34,7 @@ import {
 } from '../../lib/firestore';
 import type { Booking, ContactMessage } from '../../types';
 import { sendClientQuoteEmail, sendClientConfirmationEmail, sendClientCancellationEmail } from '../../lib/email';
+import RevenueStats from './RevenueStats';
 import './Dashboard.css';
 
 function formatDate(date: Date): string {
@@ -434,6 +435,9 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Financial Overview (Weekly & Monthly Revenue) */}
+      <RevenueStats bookings={allBookings} />
 
       {/* Filter Tabs & Date Picker */}
       <div className="dashboard__filters-bar">

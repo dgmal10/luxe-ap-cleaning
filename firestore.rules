@@ -2,9 +2,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // 1. Função auxiliar: apenas os administradores cadastrados no Firebase Auth
+    // 1. Função auxiliar: apenas os administradores autorizados específicos
     function isAdmin() {
-      return request.auth != null && request.auth.token.email != null;
+      return request.auth != null 
+        && request.auth.token.email in ['luxeaepcleaning@gmail.com', 'dgmal2010@gmail.com'];
     }
 
     // 2. AGENDAMENTOS (DADOS PESSOAIS PRIVADOS DOS CLIENTES)

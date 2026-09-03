@@ -1,5 +1,5 @@
 import { useEffect, lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import Hero from './components/public/Hero';
@@ -9,9 +9,9 @@ import Gallery from './components/public/Gallery';
 import Booking from './components/public/Booking';
 import Contact from './components/public/Contact';
 
-// Admin code-split for performance
 import { AuthProvider } from './hooks/useAuth';
 import ProtectedRoute from './components/admin/ProtectedRoute';
+import { trackPageView } from './lib/analytics';
 
 const AdminLogin = lazy(() => import('./components/admin/AdminLogin'));
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
@@ -92,6 +92,13 @@ function LandingPage() {
 }
 
 export default function App() {
+  const location = useLocation();
+
+  // Track pageview on every route change
+  useEffect(() => {
+    trackPageView(location.pathname + location.search);
+  }, [location]);
+
   return (
     <AuthProvider>
       <Suspense fallback={<AdminLoadingFallback />}>

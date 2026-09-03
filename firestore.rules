@@ -5,7 +5,11 @@ service cloud.firestore {
     // 1. Função auxiliar: apenas os administradores autorizados específicos
     function isAdmin() {
       return request.auth != null 
-        && request.auth.token.email in ['luxeaepcleaning@gmail.com', 'dgmal2010@gmail.com'];
+        && request.auth.token.email != null
+        && (
+          request.auth.token.email in ['luxeaepcleaning@gmail.com', 'dgmal10@gmail.com', 'dgmal2010@gmail.com']
+          || request.auth.token.email.lower() in ['luxeaepcleaning@gmail.com', 'dgmal10@gmail.com', 'dgmal2010@gmail.com']
+        );
     }
 
     // 2. AGENDAMENTOS (DADOS PESSOAIS PRIVADOS DOS CLIENTES)

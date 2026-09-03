@@ -35,6 +35,7 @@ import {
 } from '../../lib/firestore';
 import type { Booking, ContactMessage } from '../../types';
 import { sendClientQuoteEmail, sendClientConfirmationEmail, sendClientCancellationEmail } from '../../lib/email';
+import { useAuth } from '../../hooks/useAuth';
 import RevenueStats from './RevenueStats';
 import './Dashboard.css';
 
@@ -102,9 +103,11 @@ const STATUS_CONFIG = {
 type FilterTab = 'all' | 'pending' | 'quote_sent' | 'confirmed' | 'date';
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [allBookings, setAllBookings] = useState<Booking[]>([]);
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [selectedDate, setSelectedDate] = useState(formatDate(new Date()));
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
@@ -137,46 +140,55 @@ export default function Dashboard() {
 
   // Subscribe to real-time bookings
   useEffect(() => {
-    const unsubBookings = subscribeToAllBookings((bookings) => {
-      setAllBookings(bookings);
-      setLoading(false);
-      // Auto-sync all bookings to public booked_slots collection to prevent double bookings
-      syncBookedSlotsFromBookings(bookings);
+    const unsubBookings = subscribeToAllBookings(
+      (bookings) => {
+        setAllBookings(bookings);
+        setLoading(false);
+        setPermissionError(null);
+        // Auto-sync all bookings to public booked_slots collection to prevent double bookings
+        syncBookedSlotsFromBookings(bookings);
 
-      if (!isInitialLoad.current && bookings.length > prevBookingsCount.current) {
-        const newest = bookings[0];
-        const clientName = newest?.name || 'Cliente';
-        
-        // 1. Play audio chime
-        playNotificationChime();
-        
-        // 2. Vibrate phone if mobile
-        if (navigator.vibrate) {
-          navigator.vibrate([200, 100, 200, 100, 300]);
-        }
-
-        // 3. Trigger system push notification
-        if ('Notification' in window && Notification.permission === 'granted') {
-          try {
-            new Notification('🔔 Novo Agendamento LUXE A&P!', {
-              body: `${clientName} • ${newest.service} para ${newest.date} às ${newest.time}`,
-              icon: '/img/logo.jpg',
-              badge: '/img/logo.jpg',
-              tag: `booking-${newest.id}`,
-            });
-          } catch (e) {
-            console.info('Notification failed:', e);
+        if (!isInitialLoad.current && bookings.length > prevBookingsCount.current) {
+          const newest = bookings[0];
+          const clientName = newest?.name || 'Cliente';
+          
+          // 1. Play audio chime
+          playNotificationChime();
+          
+          // 2. Vibrate phone if mobile
+          if (navigator.vibrate) {
+            navigator.vibrate([200, 100, 200, 100, 300]);
           }
+
+          // 3. Trigger system push notification
+          if ('Notification' in window && Notification.permission === 'granted') {
+            try {
+              new Notification('🔔 Novo Agendamento LUXE A&P!', {
+                body: `${clientName} • ${newest.service} para ${newest.date} às ${newest.time}`,
+                icon: '/img/logo.jpg',
+                badge: '/img/logo.jpg',
+                tag: `booking-${newest.id}`,
+              });
+            } catch (e) {
+              console.info('Notification failed:', e);
+            }
+          }
+
+          // 4. In-app toast banner
+          setNotification(`🔔 Novo agendamento recebido de ${clientName}!`);
+          setTimeout(() => setNotification(null), 7000);
         }
 
-        // 4. In-app toast banner
-        setNotification(`🔔 Novo agendamento recebido de ${clientName}!`);
-        setTimeout(() => setNotification(null), 7000);
+        prevBookingsCount.current = bookings.length;
+        isInitialLoad.current = false;
+      },
+      (err: any) => {
+        setLoading(false);
+        if (err?.code === 'permission-denied' || String(err).includes('permission')) {
+          setPermissionError(`Acesso ao banco bloqueado pelas regras do Firestore. O e-mail logado no Admin é: "${user?.email || 'Sem e-mail'}". Esse e-mail precisa estar cadastrado na função isAdmin() das regras do Firebase.`);
+        }
       }
-
-      prevBookingsCount.current = bookings.length;
-      isInitialLoad.current = false;
-    });
+    );
 
     const unsubMessages = subscribeToAllMessages((msgs) => {
       setMessages(msgs);
@@ -186,7 +198,7 @@ export default function Dashboard() {
       unsubBookings();
       unsubMessages();
     };
-  }, []);
+  }, [user]);
 
   const handleStatusChange = async (id: string, status: Booking['status']) => {
     try {
@@ -337,6 +349,29 @@ export default function Dashboard() {
           <Bell size={18} className="dashboard__toast-icon" />
           <span>{notification}</span>
           <button className="dashboard__toast-close" onClick={() => setNotification(null)}>✕</button>
+        </div>
+      )}
+
+      {/* Permission Error Banner */}
+      {permissionError && (
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.15)',
+          border: '1px solid rgba(239, 68, 68, 0.4)',
+          borderRadius: '12px',
+          padding: '1.2rem 1.5rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '1rem',
+          color: '#fca5a5',
+        }}>
+          <AlertCircle size={24} style={{ color: '#ef4444', flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <strong style={{ fontSize: '1rem', color: '#ffffff' }}>Aviso de Permissão do Firebase</strong>
+            <p style={{ margin: '0.4rem 0 0', fontSize: '0.92rem', color: '#fca5a5', lineHeight: 1.5 }}>
+              {permissionError}
+            </p>
+          </div>
         </div>
       )}
 

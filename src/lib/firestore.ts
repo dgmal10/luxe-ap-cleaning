@@ -484,7 +484,10 @@ export async function getAllBookings(): Promise<Booking[]> {
 }
 
 /** Subscribe to all bookings in real time */
-export function subscribeToAllBookings(callback: (bookings: Booking[]) => void): Unsubscribe {
+export function subscribeToAllBookings(
+  callback: (bookings: Booking[]) => void,
+  onError?: (err: any) => void
+): Unsubscribe {
   if (!isFirebaseConfigured) {
     const fetchLocal = () => callback(getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS));
     fetchLocal();
@@ -502,6 +505,7 @@ export function subscribeToAllBookings(callback: (bookings: Booking[]) => void):
     },
     (err) => {
       console.error('Real-time bookings subscription error:', err);
+      if (onError) onError(err);
       // Fallback one-time fetch
       getAllBookings().then(callback).catch(() => {});
     }

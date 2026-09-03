@@ -16,10 +16,18 @@
 }
 
 .footer__logo {
-  height: 50px;
+  height: 52px;
   width: auto;
+  max-width: 180px;
   object-fit: contain;
   margin-bottom: var(--space-4);
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.footer__logo:hover {
+  filter: drop-shadow(0 0 14px rgba(212, 175, 55, 0.4));
+  transform: translateY(-1px);
 }
 
 .footer__desc {

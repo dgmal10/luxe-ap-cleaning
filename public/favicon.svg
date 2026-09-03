@@ -1,9 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <clipPath id="logo-clip">
-      <rect width="512" height="512" rx="90" ry="90" />
-    </clipPath>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDF3CD"/>
+      <stop offset="25%" stop-color="#E5C158"/>
+      <stop offset="60%" stop-color="#C4A265"/>
+      <stop offset="85%" stop-color="#9A782D"/>
+      <stop offset="100%" stop-color="#E5C158"/>
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#181818"/>
+      <stop offset="100%" stop-color="#080808"/>
+    </linearGradient>
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E5C158" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#9A782D" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#E5C158" stop-opacity="0.5"/>
+    </linearGradient>
   </defs>
-  <rect width="512" height="512" fill="#0a0a0a" rx="90" ry="90" />
-  <image href="/img/logo.jpg" width="512" height="512" clip-path="url(#logo-clip)" />
+  
+  <!-- Fundo Dark Elegante -->
+  <rect width="64" height="64" rx="14" fill="url(#bgGrad)"/>
+  
+  <!-- Borda Dourada Suave -->
+  <rect x="1" y="1" width="62" height="62" rx="13" fill="none" stroke="url(#borderGrad)" stroke-width="1.5"/>
+  
+  <!-- Monograma L Dourado Luxo -->
+  <text x="32" y="46" text-anchor="middle" fill="url(#goldGrad)" font-family="'Playfair Display', Georgia, 'Times New Roman', serif" font-size="38" font-weight="700" letter-spacing="-1">L</text>
+  
+  <!-- Detalhe de Brilho Sutil -->
+  <circle cx="48" cy="16" r="1.5" fill="#FFF2B2" opacity="0.9"/>
+  <path d="M48 12 L48 20 M44 16 L52 16" stroke="#FFF2B2" stroke-width="0.8" opacity="0.6"/>
 </svg>

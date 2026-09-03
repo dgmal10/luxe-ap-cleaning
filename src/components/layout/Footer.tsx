@@ -14,7 +14,7 @@ export default function Footer() {
         <div className="footer__top">
           <div className="footer__brand">
             <img
-              src="/img/logo.jpg"
+              src="/img/logo-transparent.png"
               alt="LUXE A&P Cleaning"
               className="footer__logo"
             />

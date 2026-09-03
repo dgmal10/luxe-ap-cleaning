@@ -2,8 +2,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Agendamentos: Visitantes podem criar com validação estrita de tamanho e tipo, mas APENAS o admin autenticado pode ler/editar/excluir
+    // Função auxiliar para verificar se é um administrador autenticado
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+
+    // AGENDAMENTOS
     match /bookings/{bookingId} {
+      // 1. Visitante cria agendamento com campos válidos
       allow create: if request.resource.data.name is string 
                     && request.resource.data.name.size() > 0
                     && request.resource.data.name.size() <= 100
@@ -13,10 +19,25 @@ service cloud.firestore {
                     && request.resource.data.phone.size() <= 30
                     && request.resource.data.date is string
                     && request.resource.data.time is string;
-      allow read, update, delete: if request.auth != null;
+      
+      // 2. Proteção contra vazamento: NINGUÉM pode listar/baixar todos os agendamentos, apenas o Admin.
+      allow list: if isAdmin();
+      
+      // 3. O cliente que possui o link/ID do agendamento pode visualizar seu próprio orçamento.
+      allow get: if true;
+      
+      // 4. Atualização: Admin pode tudo. Cliente público pode APENAS aprovar ou cancelar (mudar status).
+      allow update: if isAdmin() 
+                    || (
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+                      && request.resource.data.status in ['confirmed', 'cancelled', 'quote_sent']
+                    );
+      
+      // 5. Apenas Admin pode deletar
+      allow delete: if isAdmin();
     }
 
-    // Mensagens de Contato: Visitantes podem enviar com validação de campos, mas APENAS o admin autenticado pode ler/excluir
+    // MENSAGENS DE CONTATO
     match /messages/{messageId} {
       allow create: if request.resource.data.name is string 
                     && request.resource.data.name.size() > 0
@@ -25,25 +46,20 @@ service cloud.firestore {
                     && request.resource.data.email.size() <= 200
                     && request.resource.data.message is string
                     && request.resource.data.message.size() <= 2000;
-      allow read, update, delete: if request.auth != null;
+      
+      allow read, update, delete: if isAdmin();
     }
 
-    // Configurações de Agenda: Público pode ler para ver horários disponíveis, apenas admin autenticado pode alterar
-    match /config/schedule {
+    // CONFIGURAÇÕES (Agenda e Preços)
+    match /config/{configDoc} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
     }
 
-    // Configurações de Preços: Público pode ler para cálculos, apenas admin autenticado pode alterar
-    match /config/pricing {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-
-    // Galeria: Público pode visualizar fotos, apenas admin autenticado pode cadastrar/excluir
+    // GALERIA DE FOTOS
     match /gallery/{galleryId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
     }
   }
 }

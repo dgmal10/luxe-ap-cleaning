@@ -22,7 +22,7 @@ export default function Header() {
       <div className="container header__inner">
         {/* Logo */}
         <button className="header__logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Back to top">
-          <img src="/img/logo.jpg" alt="LUXE A&P Cleaning" className="header__logo-img" />
+          <img src="/img/logo-transparent.png" alt="LUXE A&P Cleaning" className="header__logo-img" />
         </button>
 
         {/* Desktop Navigation */}

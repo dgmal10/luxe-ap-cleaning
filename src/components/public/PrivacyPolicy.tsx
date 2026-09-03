@@ -18,7 +18,7 @@ export default function PrivacyPolicy() {
             <ArrowLeft size={18} />
             <span>Back to Home</span>
           </Link>
-          <img src="/img/logo.jpg" alt="LUXE A&P Cleaning" className="privacy-header__logo" />
+          <img src="/img/logo-transparent.png" alt="LUXE A&P Cleaning" className="privacy-header__logo" />
         </div>
       </header>
 

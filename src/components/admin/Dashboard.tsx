@@ -31,6 +31,7 @@ import {
   updateBookingStatus,
   updateBookingPrice,
   deleteBooking,
+  syncBookedSlotsFromBookings,
 } from '../../lib/firestore';
 import type { Booking, ContactMessage } from '../../types';
 import { sendClientQuoteEmail, sendClientConfirmationEmail, sendClientCancellationEmail } from '../../lib/email';
@@ -139,6 +140,8 @@ export default function Dashboard() {
     const unsubBookings = subscribeToAllBookings((bookings) => {
       setAllBookings(bookings);
       setLoading(false);
+      // Auto-sync all bookings to public booked_slots collection to prevent double bookings
+      syncBookedSlotsFromBookings(bookings);
 
       if (!isInitialLoad.current && bookings.length > prevBookingsCount.current) {
         const newest = bookings[0];

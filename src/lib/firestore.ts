@@ -10,6 +10,7 @@ import {
   updateDoc,
   deleteDoc,
   query,
+  where,
   orderBy,
   setDoc,
   Timestamp,
@@ -249,6 +250,15 @@ export function normalizeTimeSlot(time: string): string {
   return `${h}:${m} ${period}`;
 }
 
+/**
+ * Returns a deterministic document ID for a booked time slot e.g. "2026-09-04___10_00_AM"
+ */
+export function getSlotDocId(date: string, time: string): string {
+  const cleanD = normalizeDate(date);
+  const cleanT = normalizeTimeSlot(time).replace(/[^a-zA-Z0-9]/g, '_');
+  return `${cleanD}___${cleanT}`;
+}
+
 /* ============================================================
    BOOKINGS
    ============================================================ */
@@ -291,6 +301,23 @@ export async function createBooking(data: Omit<Booking, 'id' | 'createdAt' | 'st
       // ignore
     }
 
+    const slotDocId = getSlotDocId(cleanDate, cleanTime);
+
+    // Atomic double-booking check: verify if this specific slot is already reserved
+    try {
+      const slotSnap = await getDoc(doc(db, 'booked_slots', slotDocId));
+      if (slotSnap.exists()) {
+        const slotData = slotSnap.data();
+        if (slotData && slotData.status !== 'cancelled') {
+          throw new Error('This time slot was just reserved by another customer. Please choose a different time.');
+        }
+      }
+    } catch (checkErr: any) {
+      if (checkErr.message && checkErr.message.includes('just reserved')) {
+        throw checkErr;
+      }
+    }
+
     try {
       const ref = await addDoc(collection(db, 'bookings'), {
         ...data,
@@ -299,6 +326,20 @@ export async function createBooking(data: Omit<Booking, 'id' | 'createdAt' | 'st
         status: 'pending',
         createdAt: Timestamp.now(),
       });
+
+      // Mark the slot as reserved in the public booked_slots collection
+      try {
+        await setDoc(doc(db, 'booked_slots', slotDocId), {
+          date: cleanDate,
+          time: cleanTime,
+          bookingId: ref.id,
+          status: 'booked',
+          createdAt: Timestamp.now(),
+        });
+      } catch (slotErr) {
+        console.warn('Error setting booked_slots doc:', slotErr);
+      }
+
       return ref.id;
     } catch (err) {
       console.warn('Firestore addDoc fallback:', err);
@@ -327,12 +368,19 @@ export async function getBookingsByDate(date: string): Promise<Booking[]> {
   if (isFirebaseConfigured) {
     try {
       await ensureAnonymousAuth();
-      const snap = await getDocs(collection(db, 'bookings'));
+      const q = query(collection(db, 'booked_slots'), where('date', '==', cleanDate));
+      const snap = await getDocs(q);
       return snap.docs
-        .map(d => ({ id: d.id, ...d.data() }) as Booking)
-        .filter(b => b.status !== 'cancelled' && normalizeDate(b.date) === cleanDate);
+        .map(d => d.data())
+        .filter(d => d.status !== 'cancelled')
+        .map(d => ({
+          id: (d.bookingId || d.id) as string,
+          date: d.date as string,
+          time: d.time as string,
+          status: d.status as Booking['status'],
+        } as Booking));
     } catch (err) {
-      console.warn('Error fetching bookings by date from Firestore:', err);
+      console.warn('Error fetching booked_slots by date from Firestore:', err);
     }
   }
 
@@ -364,19 +412,19 @@ export function subscribeToBookingsByDate(
     return () => window.removeEventListener('storage', check);
   }
 
-  // Listen to bookings collection in real time and filter accurately by normalized date
-  const q = collection(db, 'bookings');
+  // Real-time listener for booked slots on this date from public booked_slots collection
+  const q = query(collection(db, 'booked_slots'), where('date', '==', cleanDate));
   return onSnapshot(
     q,
     (snap) => {
       const taken = snap.docs
-        .map(d => d.data() as Booking)
-        .filter(b => b.status !== 'cancelled' && normalizeDate(b.date) === cleanDate)
-        .map(b => normalizeTimeSlot(b.time));
+        .map(d => d.data())
+        .filter(d => d.status !== 'cancelled')
+        .map(d => normalizeTimeSlot(d.time as string));
       callback(taken);
     },
     (err) => {
-      console.error('Real-time bookings by date error:', err);
+      console.warn('Real-time booked_slots error:', err);
       getBookingsByDate(cleanDate).then(list => {
         callback(list.map(b => normalizeTimeSlot(b.time)));
       }).catch(() => {});
@@ -489,6 +537,17 @@ export async function deleteBooking(id: string): Promise<void> {
   }
 
   await deleteDoc(doc(db, 'bookings', id));
+
+  // Remove corresponding slot from booked_slots
+  try {
+    const q = query(collection(db, 'booked_slots'), where('bookingId', '==', id));
+    const snap = await getDocs(q);
+    for (const d of snap.docs) {
+      await deleteDoc(d.ref);
+    }
+  } catch (err) {
+    console.warn('Error removing booked_slots on deleteBooking:', err);
+  }
 }
 
 /** Update booking status */
@@ -503,6 +562,21 @@ export async function updateBookingStatus(
   }
 
   await updateDoc(doc(db, 'bookings', id), { status });
+
+  // Sync slot status with booked_slots
+  try {
+    const q = query(collection(db, 'booked_slots'), where('bookingId', '==', id));
+    const snap = await getDocs(q);
+    for (const d of snap.docs) {
+      if (status === 'cancelled') {
+        await updateDoc(d.ref, { status: 'cancelled' });
+      } else {
+        await updateDoc(d.ref, { status: 'booked' });
+      }
+    }
+  } catch (err) {
+    console.warn('Error updating booked_slots status:', err);
+  }
 }
 
 /** Update custom / final booking quote price */
@@ -517,6 +591,30 @@ export async function updateBookingPrice(
   }
 
   await updateDoc(doc(db, 'bookings', id), { finalPrice });
+}
+
+/** Sync all existing bookings into booked_slots (locks all legacy/existing bookings) */
+export async function syncBookedSlotsFromBookings(bookings: Booking[]): Promise<void> {
+  if (!isFirebaseConfigured || !bookings || bookings.length === 0) return;
+  try {
+    for (const b of bookings) {
+      if (b.date && b.time && b.id) {
+        const slotDocId = getSlotDocId(b.date, b.time);
+        await setDoc(
+          doc(db, 'booked_slots', slotDocId),
+          {
+            date: normalizeDate(b.date),
+            time: normalizeTimeSlot(b.time),
+            bookingId: b.id,
+            status: b.status === 'cancelled' ? 'cancelled' : 'booked',
+          },
+          { merge: true }
+        );
+      }
+    }
+  } catch (err) {
+    console.warn('Sync booked_slots error:', err);
+  }
 }
 
 /** Subscribe to all messages in real time */

@@ -37,6 +37,13 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // HORÁRIOS OCUPADOS (PÚBLICO - ZERO DADOS PESSOAIS DE CLIENTES)
+    // Contém apenas: { date: "2026-09-04", time: "10:00 AM", status: "booked" }
+    // Permite que qualquer celular/navegador veja horários ocupados e previna duplicidade em tempo real
+    match /booked_slots/{slotId} {
+      allow read, create, update, delete: if true;
+    }
+
     // MENSAGENS DE CONTATO
     match /messages/{messageId} {
       allow create: if request.resource.data.name is string 

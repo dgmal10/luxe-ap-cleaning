@@ -138,63 +138,84 @@ export default function Dashboard() {
     }
   };
 
-  // Subscribe to real-time bookings
+  // Subscribe to real-time bookings only after auth is confirmed
   useEffect(() => {
-    const unsubBookings = subscribeToAllBookings(
-      (bookings) => {
-        setAllBookings(bookings);
-        setLoading(false);
-        setPermissionError(null);
-        // Auto-sync all bookings to public booked_slots collection to prevent double bookings
-        syncBookedSlotsFromBookings(bookings);
+    if (!user) {
+      setLoading(true);
+      return;
+    }
 
-        if (!isInitialLoad.current && bookings.length > prevBookingsCount.current) {
-          const newest = bookings[0];
-          const clientName = newest?.name || 'Cliente';
-          
-          // 1. Play audio chime
-          playNotificationChime();
-          
-          // 2. Vibrate phone if mobile
-          if (navigator.vibrate) {
-            navigator.vibrate([200, 100, 200, 100, 300]);
-          }
+    let unsubBookings: () => void = () => {};
+    let unsubMessages: () => void = () => {};
+    let isMounted = true;
 
-          // 3. Trigger system push notification
-          if ('Notification' in window && Notification.permission === 'granted') {
-            try {
-              new Notification('🔔 Novo Agendamento LUXE A&P!', {
-                body: `${clientName} • ${newest.service} para ${newest.date} às ${newest.time}`,
-                icon: '/img/logo.jpg',
-                badge: '/img/logo.jpg',
-                tag: `booking-${newest.id}`,
-              });
-            } catch (e) {
-              console.info('Notification failed:', e);
+    // Ensure Firebase Auth token is actively attached to Firestore before subscribing
+    user.getIdToken().then(() => {
+      if (!isMounted) return;
+
+      unsubBookings = subscribeToAllBookings(
+        (bookings) => {
+          if (!isMounted) return;
+          setAllBookings(bookings);
+          setLoading(false);
+          setPermissionError(null);
+          // Auto-sync all bookings to public booked_slots collection to prevent double bookings
+          syncBookedSlotsFromBookings(bookings);
+
+          if (!isInitialLoad.current && bookings.length > prevBookingsCount.current) {
+            const newest = bookings[0];
+            const clientName = newest?.name || 'Cliente';
+            
+            // 1. Play audio chime
+            playNotificationChime();
+            
+            // 2. Vibrate phone if mobile
+            if (navigator.vibrate) {
+              navigator.vibrate([200, 100, 200, 100, 300]);
             }
+
+            // 3. Trigger system push notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+              try {
+                new Notification('🔔 Novo Agendamento LUXE A&P!', {
+                  body: `${clientName} • ${newest.service} para ${newest.date} às ${newest.time}`,
+                  icon: '/img/logo.jpg',
+                  badge: '/img/logo.jpg',
+                  tag: `booking-${newest.id}`,
+                });
+              } catch (e) {
+                console.info('Notification failed:', e);
+              }
+            }
+
+            // 4. In-app toast banner
+            setNotification(`🔔 Novo agendamento recebido de ${clientName}!`);
+            setTimeout(() => setNotification(null), 7000);
           }
 
-          // 4. In-app toast banner
-          setNotification(`🔔 Novo agendamento recebido de ${clientName}!`);
-          setTimeout(() => setNotification(null), 7000);
+          prevBookingsCount.current = bookings.length;
+          isInitialLoad.current = false;
+        },
+        (err: any) => {
+          if (!isMounted) return;
+          setLoading(false);
+          if (err?.code === 'permission-denied' || String(err).includes('permission')) {
+            setPermissionError(`Acesso bloqueado pelo Firestore: o e-mail logado "${user?.email || 'sem e-mail'}" não está na lista de administradores autorizados nas Regras.`);
+          }
         }
+      );
 
-        prevBookingsCount.current = bookings.length;
-        isInitialLoad.current = false;
-      },
-      (err: any) => {
-        setLoading(false);
-        if (err?.code === 'permission-denied' || String(err).includes('permission')) {
-          setPermissionError(`Acesso ao banco bloqueado pelas regras do Firestore. O e-mail logado no Admin é: "${user?.email || 'Sem e-mail'}". Esse e-mail precisa estar cadastrado na função isAdmin() das regras do Firebase.`);
-        }
-      }
-    );
-
-    const unsubMessages = subscribeToAllMessages((msgs) => {
-      setMessages(msgs);
+      unsubMessages = subscribeToAllMessages((msgs) => {
+        if (!isMounted) return;
+        setMessages(msgs);
+      });
+    }).catch((tokenErr) => {
+      console.error('Error synchronizing auth token:', tokenErr);
+      setLoading(false);
     });
 
     return () => {
+      isMounted = false;
       unsubBookings();
       unsubMessages();
     };

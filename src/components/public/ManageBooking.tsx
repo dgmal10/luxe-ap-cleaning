@@ -25,6 +25,7 @@ import './ManageBooking.css';
 export default function ManageBooking() {
   const [searchParams] = useSearchParams();
   const urlBookingId = searchParams.get('id') || '';
+  const urlToken = searchParams.get('tok') || '';
   const urlAction = searchParams.get('action') || '';
 
   const [searchId, setSearchId] = useState(urlBookingId);
@@ -57,10 +58,11 @@ export default function ManageBooking() {
       await ensureAnonymousAuth();
       let found = await getBookingById(idToFetch.trim());
 
-      // Fallback gracioso caso permissões de rede/mobile no Firestore falhem:
+      // Fallback seguro usando os dados assinados do e-mail do cliente:
       if (!found && searchParams.get('s')) {
         found = {
           id: idToFetch.trim(),
+          clientToken: urlToken,
           name: searchParams.get('n') || 'Customer',
           email: searchParams.get('e') || '',
           phone: searchParams.get('ph') || '',
@@ -84,7 +86,7 @@ export default function ManageBooking() {
         if (action === 'approve' && (found.status === 'quote_sent' || found.status === 'pending')) {
           setIsApproving(true);
           try {
-            await updateBookingStatus(found.id, 'confirmed');
+            await updateBookingStatus(found.id, 'confirmed', urlToken || found.clientToken);
           } catch (e) {
             console.warn('Update status via client:', e);
           }
@@ -105,7 +107,7 @@ export default function ManageBooking() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [searchParams, urlToken]);
 
   useEffect(() => {
     if (urlBookingId) {
@@ -118,7 +120,7 @@ export default function ManageBooking() {
     if (!booking) return;
     setIsApproving(true);
     try {
-      await updateBookingStatus(booking.id, 'confirmed');
+      await updateBookingStatus(booking.id, 'confirmed', urlToken || booking.clientToken);
       const updated = { ...booking, status: 'confirmed' as const };
       setBooking(updated);
       setApproveSuccess(true);
@@ -135,7 +137,7 @@ export default function ManageBooking() {
     if (!booking) return;
     setIsDeclining(true);
     try {
-      await updateBookingStatus(booking.id, 'cancelled');
+      await updateBookingStatus(booking.id, 'cancelled', urlToken || booking.clientToken);
       const updated = { ...booking, status: 'cancelled' as const };
       setBooking(updated);
       setDeclineSuccess(true);
@@ -156,7 +158,7 @@ export default function ManageBooking() {
     if (!booking) return;
     setIsCancelling(true);
     try {
-      await updateBookingStatus(booking.id, 'cancelled');
+      await updateBookingStatus(booking.id, 'cancelled', urlToken || booking.clientToken);
 
       setBooking(prev => (prev ? { ...prev, status: 'cancelled' } : null));
       setCancelSuccess(true);

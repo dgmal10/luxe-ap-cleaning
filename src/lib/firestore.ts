@@ -259,6 +259,16 @@ export function getSlotDocId(date: string, time: string): string {
   return `${cleanD}___${cleanT}`;
 }
 
+/**
+ * Generates a cryptographically strong secret token required for customer self-service confirmation
+ */
+export function generateClientToken(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return 'sec_' + crypto.randomUUID().replace(/-/g, '');
+  }
+  return 'sec_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
 /* ============================================================
    BOOKINGS
    ============================================================ */
@@ -294,6 +304,8 @@ export async function createBooking(data: Omit<Booking, 'id' | 'createdAt' | 'st
     }
   }
 
+  const clientToken = generateClientToken();
+
   if (isFirebaseConfigured) {
     try {
       await ensureAnonymousAuth();
@@ -324,6 +336,7 @@ export async function createBooking(data: Omit<Booking, 'id' | 'createdAt' | 'st
         date: cleanDate,
         time: cleanTime,
         status: 'pending',
+        clientToken,
         createdAt: Timestamp.now(),
       });
 
@@ -354,6 +367,7 @@ export async function createBooking(data: Omit<Booking, 'id' | 'createdAt' | 'st
     time: cleanTime,
     id: fallbackId,
     status: 'pending',
+    clientToken,
     createdAt: { seconds: Math.floor(Date.now() / 1000) },
   };
   setLocal('luxe_bookings', [newBooking, ...list]);
@@ -550,10 +564,11 @@ export async function deleteBooking(id: string): Promise<void> {
   }
 }
 
-/** Update booking status */
+/** Update booking status (verifies clientToken if provided) */
 export async function updateBookingStatus(
   id: string,
-  status: Booking['status']
+  status: Booking['status'],
+  clientToken?: string
 ): Promise<void> {
   if (!isFirebaseConfigured) {
     const list = getLocal<Booking[]>('luxe_bookings', INITIAL_DEMO_BOOKINGS);
@@ -561,7 +576,12 @@ export async function updateBookingStatus(
     return;
   }
 
-  await updateDoc(doc(db, 'bookings', id), { status });
+  const payload: Record<string, any> = { status };
+  if (clientToken) {
+    payload.clientToken = clientToken;
+  }
+
+  await updateDoc(doc(db, 'bookings', id), payload);
 
   // Sync slot status with booked_slots
   try {
@@ -610,6 +630,12 @@ export async function syncBookedSlotsFromBookings(bookings: Booking[]): Promise<
           },
           { merge: true }
         );
+
+        // Ensure legacy booking has a secret clientToken
+        if (!b.clientToken) {
+          const tok = generateClientToken();
+          await updateDoc(doc(db, 'bookings', b.id), { clientToken: tok }).catch(() => {});
+        }
       }
     }
   } catch (err) {

@@ -77,6 +77,7 @@ function buildBookingUrl(booking: any, id: string, action?: string): string {
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://luxe-ap-cleaning.vercel.app';
   const params = new URLSearchParams();
   params.set('id', id);
+  if (booking.clientToken) params.set('tok', booking.clientToken);
   if (booking.name) params.set('n', booking.name);
   if (booking.email) params.set('e', booking.email);
   if (booking.phone) params.set('ph', booking.phone);

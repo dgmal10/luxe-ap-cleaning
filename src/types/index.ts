@@ -65,6 +65,7 @@ export interface Booking {
   address: string;
   notes: string;
   status: 'pending' | 'quote_sent' | 'confirmed' | 'completed' | 'cancelled';
+  clientToken?: string; // Secret security token generated upon booking creation
   createdAt: unknown; // Timestamp do Firestore
 }
 

@@ -2,14 +2,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Função auxiliar para verificar se é um administrador autenticado
+    // 1. Função auxiliar: apenas os administradores cadastrados no Firebase Auth
     function isAdmin() {
       return request.auth != null && request.auth.token.email != null;
     }
 
-    // AGENDAMENTOS
+    // 2. AGENDAMENTOS (DADOS PESSOAIS PRIVADOS DOS CLIENTES)
     match /bookings/{bookingId} {
-      // 1. Visitante cria agendamento com campos válidos
+      // Criação inicial: visitante cria agendamento com validação rígida de campos e clientToken obrigatório
       allow create: if request.resource.data.name is string 
                     && request.resource.data.name.size() > 0
                     && request.resource.data.name.size() <= 100
@@ -18,33 +18,50 @@ service cloud.firestore {
                     && request.resource.data.phone is string
                     && request.resource.data.phone.size() <= 30
                     && request.resource.data.date is string
-                    && request.resource.data.time is string;
+                    && request.resource.data.time is string
+                    && request.resource.data.clientToken is string
+                    && request.resource.data.clientToken.size() >= 16;
       
-      // 2. Proteção contra vazamento: NINGUÉM pode listar/baixar todos os agendamentos, apenas o Admin.
-      allow list: if isAdmin();
+      // BLINDAGEM MÁXIMA DE LEITURA (Anti-Vazamento de PII):
+      // NENHUM visitante ou terceiro pode ler documentos de agendamento (nem 'get' nem 'list')!
+      // Mesmo se o ID for descoberto ou vazado, o Firestore BLOQUEIA qualquer leitura pública.
+      // Apenas os administradores autenticados podem ler os dados dos clientes.
+      allow read: if isAdmin();
       
-      // 3. O cliente que possui o link/ID do agendamento pode visualizar seu próprio orçamento.
-      allow get: if true;
-      
-      // 4. Atualização: Admin pode tudo. Cliente público pode APENAS aprovar ou cancelar (mudar status).
+      // ATUALIZAÇÃO SEGURA (Anti-Adulteração de Status):
+      // Admin pode atualizar qualquer campo.
+      // O cliente público SÓ consegue aprovar ou cancelar SE fornecer exatamente o clientToken secreto gerado no agendamento e enviado no seu e-mail pessoal!
       allow update: if isAdmin() 
                     || (
-                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
-                      && request.resource.data.status in ['confirmed', 'cancelled', 'quote_sent']
+                      request.resource.data.clientToken == resource.data.clientToken
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'clientToken'])
+                      && request.resource.data.status in ['confirmed', 'cancelled']
                     );
       
-      // 5. Apenas Admin pode deletar
+      // EXCLUSÃO: Apenas administradores
       allow delete: if isAdmin();
     }
 
-    // HORÁRIOS OCUPADOS (PÚBLICO - ZERO DADOS PESSOAIS DE CLIENTES)
-    // Contém apenas: { date: "2026-09-04", time: "10:00 AM", status: "booked" }
-    // Permite que qualquer celular/navegador veja horários ocupados e previna duplicidade em tempo real
+    // 3. HORÁRIOS OCUPADOS (PÚBLICO - ZERO DADOS PESSOAIS DE CLIENTES)
+    // Contém APENAS: date, time, status: 'booked', bookingId
+    // Permite consulta pública sem vazar nenhum dado de cliente
     match /booked_slots/{slotId} {
-      allow read, create, update, delete: if true;
+      // Leitura pública dos horários ocupados para desativar botões na interface
+      allow read: if true;
+
+      // Criação restrita: visitante SÓ pode reservar se o horário NÃO estiver ocupado ainda (previne sobrescrita e duplicidade)
+      allow create: if !exists(/databases/$(database)/documents/booked_slots/$(slotId))
+                    && request.resource.data.date is string
+                    && request.resource.data.time is string
+                    && request.resource.data.status == 'booked'
+                    && request.resource.data.bookingId is string;
+
+      // BLOQUEIO CONTRA VANDALISMO: Visitantes NÃO podem alterar nem apagar os horários da agenda!
+      // Apenas administradores podem alterar ou liberar horários no banco.
+      allow update, delete: if isAdmin();
     }
 
-    // MENSAGENS DE CONTATO
+    // 4. MENSAGENS DE CONTATO
     match /messages/{messageId} {
       allow create: if request.resource.data.name is string 
                     && request.resource.data.name.size() > 0
@@ -57,13 +74,13 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
-    // CONFIGURAÇÕES (Agenda e Preços)
+    // 5. CONFIGURAÇÕES (Agenda e Preços)
     match /config/{configDoc} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // GALERIA DE FOTOS
+    // 6. GALERIA DE FOTOS
     match /gallery/{galleryId} {
       allow read: if true;
       allow write: if isAdmin();

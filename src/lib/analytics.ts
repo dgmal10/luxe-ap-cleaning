@@ -4,7 +4,7 @@
  * Se não configurada, todas as funções são silenciosamente ignoradas (modo demo/dev).
  */
 
-const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined;
+const GA_ID = (import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-R3P2622J57') as string;
 
 /** Retorna true se o GA está configurado e o gtag está disponível */
 function isGAReady(): boolean {
@@ -17,9 +17,10 @@ function isGAReady(): boolean {
  */
 export function trackPageView(path: string, title?: string): void {
   if (!isGAReady()) return;
-  (window as any).gtag('config', GA_ID, {
-    page_path: path,
+  (window as any).gtag('event', 'page_view', {
     page_title: title || document.title,
+    page_location: window.location.href,
+    page_path: path,
   });
 }
 

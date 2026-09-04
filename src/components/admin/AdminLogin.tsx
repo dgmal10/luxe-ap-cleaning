@@ -189,7 +189,7 @@ export default function AdminLogin() {
                     id="reset-email"
                     type="email"
                     className="admin-login__input"
-                    placeholder="admin@luxeapcleaning.com"
+                    placeholder="luxeaepcleaning@gmail.com"
                     value={resetEmail}
                     onChange={e => setResetEmail(e.target.value)}
                     required
@@ -243,7 +243,7 @@ export default function AdminLogin() {
                 id="login-email"
                 type="email"
                 className="admin-login__input"
-                placeholder="admin@luxeapcleaning.com"
+                placeholder="luxeaepcleaning@gmail.com"
                 value={email}
                 onChange={e => { setEmail(e.target.value); clearError(); }}
                 required

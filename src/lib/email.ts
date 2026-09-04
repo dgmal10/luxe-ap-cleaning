@@ -74,7 +74,7 @@ export async function sendBookingEmail(booking: BookingFormData): Promise<boolea
 }
 
 function buildBookingUrl(booking: any, id: string, action?: string): string {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://luxe-ap-cleaning.vercel.app';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://luxeaepcleaning.com';
   const params = new URLSearchParams();
   params.set('id', id);
   if (booking.clientToken) params.set('tok', booking.clientToken);

@@ -48,7 +48,7 @@ export default function PrivacyPolicy() {
                 At <strong>{BUSINESS.name}</strong> ("we," "our," or "us"), your privacy and the security
                 of your personal information are of paramount importance. This Privacy Policy outlines
                 our practices concerning the collection, use, protection, and disclosure of your personal
-                data when you visit our website (<strong>luxe-ap-cleaning.vercel.app</strong>), request a quote,
+                data when you visit our website (<strong>luxeaepcleaning.com</strong>), request a quote,
                 book a cleaning service, or contact us.
               </p>
               <p>

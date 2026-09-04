@@ -617,11 +617,30 @@ export async function updateBookingPrice(
   await updateDoc(doc(db, 'bookings', id), { finalPrice });
 }
 
-/** Sync all existing bookings into booked_slots (locks all legacy/existing bookings) */
+/** Sync all existing bookings into booked_slots (locks active bookings and removes orphaned/cancelled slots) */
 export async function syncBookedSlotsFromBookings(bookings: Booking[]): Promise<void> {
-  if (!isFirebaseConfigured || !bookings || bookings.length === 0) return;
+  if (!isFirebaseConfigured) return;
   try {
-    for (const b of bookings) {
+    const snap = await getDocs(collection(db, 'booked_slots'));
+    const activeBookingMap = new Map<string, Booking>();
+
+    (bookings || []).forEach(b => {
+      if (b.id && b.status !== 'cancelled') {
+        activeBookingMap.set(b.id, b);
+      }
+    });
+
+    // 1. Delete orphaned slots whose booking no longer exists in bookings or was cancelled
+    for (const slotDoc of snap.docs) {
+      const data = slotDoc.data();
+      const bId = data.bookingId;
+      if (!bId || !activeBookingMap.has(bId)) {
+        await deleteDoc(slotDoc.ref).catch(e => console.warn('Error deleting orphaned slot:', e));
+      }
+    }
+
+    // 2. Ensure all active bookings have their slot registered in booked_slots
+    for (const b of activeBookingMap.values()) {
       if (b.date && b.time && b.id) {
         const slotDocId = getSlotDocId(b.date, b.time);
         await setDoc(
@@ -630,7 +649,7 @@ export async function syncBookedSlotsFromBookings(bookings: Booking[]): Promise<
             date: normalizeDate(b.date),
             time: normalizeTimeSlot(b.time),
             bookingId: b.id,
-            status: b.status === 'cancelled' ? 'cancelled' : 'booked',
+            status: 'booked',
           },
           { merge: true }
         );

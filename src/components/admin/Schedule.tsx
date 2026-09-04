@@ -12,7 +12,7 @@ import {
   CheckCircle,
   RefreshCw,
 } from 'lucide-react';
-import { getScheduleConfig, updateScheduleConfig, generateTimeSlots } from '../../lib/firestore';
+import { getScheduleConfig, updateScheduleConfig, generateTimeSlots, getAllBookings, syncBookedSlotsFromBookings } from '../../lib/firestore';
 import type { ScheduleConfig } from '../../types';
 import './Schedule.css';
 
@@ -32,6 +32,23 @@ export default function Schedule() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [newBlockedDate, setNewBlockedDate] = useState('');
+  const [syncingSlots, setSyncingSlots] = useState(false);
+  const [syncSuccess, setSyncSuccess] = useState(false);
+
+  const handleSyncSlots = async () => {
+    setSyncingSlots(true);
+    setSyncSuccess(false);
+    try {
+      const bookings = await getAllBookings();
+      await syncBookedSlotsFromBookings(bookings);
+      setSyncSuccess(true);
+      setTimeout(() => setSyncSuccess(false), 3000);
+    } catch (err) {
+      console.error('Failed to sync slots:', err);
+    } finally {
+      setSyncingSlots(false);
+    }
+  };
 
   const fetchConfig = useCallback(async () => {
     setLoading(true);
@@ -187,6 +204,30 @@ export default function Schedule() {
           <p className="schedule__subtitle">Gerencie sua disponibilidade, dias e horários de agendamento</p>
         </div>
         <div className="schedule__header-actions">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleSyncSlots}
+            disabled={syncingSlots}
+            title="Libera horários de agendamentos excluídos e sincroniza a agenda"
+          >
+            {syncingSlots ? (
+              <>
+                <span className="spinner spinner-sm" />
+                Sincronizando...
+              </>
+            ) : syncSuccess ? (
+              <>
+                <CheckCircle size={16} style={{ color: 'var(--color-success)' }} />
+                Horários Liberados!
+              </>
+            ) : (
+              <>
+                <RefreshCw size={16} />
+                Sincronizar &amp; Liberar Horários
+              </>
+            )}
+          </button>
           <button className="schedule__refresh" onClick={fetchConfig} aria-label="Atualizar">
             <RefreshCw size={18} />
           </button>
